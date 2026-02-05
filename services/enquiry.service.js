@@ -14,7 +14,6 @@
 // };
 
 
-
 const Enquiry = require("../models/enquiry.model");
 const mongoose = require("mongoose");
 
@@ -23,17 +22,40 @@ const generateEnquiryNumber = () => {
 };
 
 const createEnquiry = async (data) => {
-  const enquiryData = {
-    ...data,
-    enquiryNumber: generateEnquiryNumber(),
-    eid: data.eid || null, // public form safe
-  };
+  try {
+    // ❌ default gender नाही
+    if (!data.gender) {
+      throw new Error("Gender is required");
+    }
 
-  return await Enquiry.create(enquiryData);
+    if (!data.courseName || typeof data.courseName !== "string") {
+      data.courseName = "";
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(data.eid)) {
+      data.eid = null;
+    }
+
+    const enquiryData = {
+      ...data,
+      enquiryNumber: generateEnquiryNumber(),
+      eid: data.eid || null,
+    };
+
+    return await Enquiry.create(enquiryData);
+  } catch (error) {
+    console.error("Service Create Enquiry Error:", error.message);
+    throw error;
+  }
 };
 
 const getAllEnquiries = async () => {
-  return await Enquiry.find().populate("eid courseName");
+  try {
+    return await Enquiry.find().populate("eid");
+  } catch (error) {
+    console.error("Service Get Enquiries Error:", error.message);
+    throw error;
+  }
 };
 
 module.exports = {
