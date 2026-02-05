@@ -32,7 +32,6 @@
 
 
 
-
 const enquiryService = require("../services/enquiry.service");
 
 const createEnquiry = async (req, res) => {
@@ -47,10 +46,10 @@ const createEnquiry = async (req, res) => {
   } catch (error) {
     console.error("Enquiry Error:", error.message);
 
-    res.status(500).json({
+    // 🔴 validation / client error
+    res.status(400).json({
       success: false,
-      message: "Failed to submit enquiry",
-      error: error.message,
+      message: error.message || "Invalid enquiry data",
     });
   }
 };
@@ -64,6 +63,8 @@ const getAllEnquiries = async (req, res) => {
       data: enquiries,
     });
   } catch (error) {
+    console.error("Get Enquiries Error:", error.message);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch enquiries",
