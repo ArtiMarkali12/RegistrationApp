@@ -9,20 +9,20 @@ const technologySchema = new mongoose.Schema(
     //   trim: true
     // },
     techName: {
-      type: String,      // eg: "React JS"
+      type: String, // eg: "React JS"
       required: true,
-      trim: true
+      trim: true,
     },
     duration: {
-      type: String,      // eg: "3 Months"
-      trim: true
+      type: String, // eg: "3 Months"
+      trim: true,
     },
     version: {
-      type: String,      // eg: "18.2"
-      trim: true
-    }
+      type: String, // eg: "18.2"
+      trim: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Technology", technologySchema);
