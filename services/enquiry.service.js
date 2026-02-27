@@ -15,15 +15,18 @@
 
 
 
-
 const Enquiry = require("../models/enquiry.model");
 const mongoose = require("mongoose");
 
-const generateEnquiryNumber = () => "ENQ-" + Date.now();
+/* ================= GENERATE ENQUIRY NUMBER ================= */
+const generateEnquiryNumber = () => {
+  return "ENQ-" + Date.now();
+};
 
+/* ================= CREATE ENQUIRY ================= */
 const createEnquiry = async (data) => {
   try {
-    // 🔒 SAFETY MAPPING (MOST IMPORTANT)
+    // 🔒 SAFE FIELD MAPPING (IMPORTANT)
     const fname = data.fname || data.firstName || "";
     const lname = data.lname || data.lastName || "";
 
@@ -50,7 +53,11 @@ const createEnquiry = async (data) => {
 
       enquiryNumber: generateEnquiryNumber(),
 
-      eid: mongoose.Types.ObjectId.isValid(data.eid) ? data.eid : null,
+      // Validate ObjectIds safely
+      eid: mongoose.Types.ObjectId.isValid(data.eid)
+        ? data.eid
+        : null,
+
       courseName: mongoose.Types.ObjectId.isValid(data.courseName)
         ? data.courseName
         : null,
@@ -63,4 +70,22 @@ const createEnquiry = async (data) => {
   }
 };
 
-module.exports = { createEnquiry };
+/* ================= GET ALL ENQUIRIES ================= */
+const getAllEnquiries = async () => {
+  try {
+    const enquiries = await Enquiry.find()
+      .populate("eid", "fname lname email") // Employee info
+      .populate("courseName", "name feesAmount duration") // Course info
+      .sort({ createdAt: -1 }); // Latest first
+
+    return enquiries;
+  } catch (error) {
+    console.error("❌ Service Get All Enquiries Error:", error.message);
+    throw error;
+  }
+};
+
+module.exports = {
+  createEnquiry,
+  getAllEnquiries,
+};

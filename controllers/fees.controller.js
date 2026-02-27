@@ -274,3 +274,21 @@ exports.deleteFees = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+/* ================= GET PAYMENT MODES ================= */
+exports.getPaymentModes = async (req, res) => {
+  try {
+    const paymentModes = Fees.schema.path("modeOfPayment").enumValues;
+
+    res.status(200).json({
+      success: true,
+      data: paymentModes,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

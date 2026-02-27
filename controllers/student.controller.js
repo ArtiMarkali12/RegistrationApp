@@ -87,6 +87,7 @@
 
 const Student = require("../models/student.model");
 const Enquiry = require("../models/enquiry.model");
+const studentService = require("../services/student.service");
 
 // ==========================
 // Create new student
@@ -224,6 +225,67 @@ exports.getStudentDetailsByContact = async (req, res, next) => {
         enquiry: enquiry || null,
         student: student || null,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+/* ================= GET ALL STUDENTS ================= */
+exports.getAllStudents = async (req, res, next) => {
+  try {
+    const students = await studentService.getAllStudents();
+
+    res.status(200).json({
+      success: true,
+      count: students.length,
+      data: students,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* ================= GET STUDENT BY MONGODB _ID ================= */
+exports.getStudentById = async (req, res, next) => {
+  try {
+    const student = await studentService.getStudentById(req.params.id);
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: student,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* ================= GET STUDENT BY REGISTRATION NUMBER ================= */
+exports.getStudentByRegistrationNo = async (req, res, next) => {
+  try {
+    const student = await studentService.getStudentByRegistrationNo(
+      req.params.registration_no
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: student,
     });
   } catch (error) {
     next(error);

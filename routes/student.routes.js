@@ -27,28 +27,39 @@
 
 
 
-
-
 const express = require("express");
 const router = express.Router();
 const studentController = require("../controllers/student.controller");
 
-// POST - create new student
+// ==========================
+// CREATE
+// ==========================
 router.post("/", studentController.createStudent);
 
-// GET - get all students
+// ==========================
+// GET ALL
+// ==========================
 router.get("/", studentController.getAllStudents);
 
-// ✅ FIRST put specific route
+// ==========================
+// SPECIAL ROUTES (ALWAYS FIRST)
+// ==========================
 router.get("/details/:contact", studentController.getStudentDetailsByContact);
 
-// THEN generic route
-router.get("/:stdId", studentController.getStudentByStdId);
+// Get by registration number
+router.get("/registration/:registration_no", studentController.getStudentByRegistrationNo);
 
-// PUT - update student by stdId
-router.put("/:stdId", studentController.updateStudent);
+// Get by MongoDB _id
+router.get("/id/:id", studentController.getStudentById);
 
-// DELETE - delete student by stdId
-router.delete("/:stdId", studentController.deleteStudent);
+// ==========================
+// UPDATE by registration number
+// ==========================
+router.put("/registration/:registration_no", studentController.updateStudent);
+
+// ==========================
+// DELETE by registration number
+// ==========================
+router.delete("/registration/:registration_no", studentController.deleteStudent);
 
 module.exports = router;
