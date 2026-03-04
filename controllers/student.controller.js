@@ -299,6 +299,7 @@
 
 
 const Student = require("../models/student.model");
+const Fees = require("../models/fees.model");
 const sharp = require("sharp");
 const studentService = require("../services/student.service");
 
@@ -332,6 +333,39 @@ exports.createStudent = async (req, res, next) => {
     }
 
     const student = await Student.create(studentData);
+
+    // 🎉 AUTO-CREATE FEES RECORD IF COURSE IS PROVIDED
+    if (student.courseId) {
+      try {
+        const Course = require("../models/course.model");
+        const course = await Course.findById(student.courseId);
+
+        if (course) {
+          const feesData = {
+            studentId: student._id,
+            employeeId: student.eid || 1,
+            actualFees: course.feesAmount || 0,
+            discount: 0,
+            totalAmount: course.feesAmount || 0,
+            totalPaid: 0,
+            remainingAmount: course.feesAmount || 0,
+            installmentNo: 0,
+            feesStatus: "PENDING",
+            statementDate: new Date(),
+            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            currentDate: new Date(),
+            receiptNumber: `RCPT-INIT-${Date.now()}`,
+            modeOfPayment: "CASH",
+            transactionId: "INITIAL",
+          };
+
+          await Fees.create(feesData);
+        }
+      } catch (feeError) {
+        console.error("⚠️ Auto fees creation failed:", feeError.message);
+        // Don't fail student registration if fees creation fails
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -414,6 +448,39 @@ exports.getStudentByName = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+/* ================= GET STUDENTS BY REGISTRATION NUMBER (LIST) ================= */
+exports.getStudentRegistrationNumbers = async (req, res) => {
+  try {
+    const students = await Student.find()
+      .select("registration_no fname mname lname contact email")
+      .sort({ registration_no: 1 });
+
+    if (!students || students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No students found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: students.length,
+      data: students.map(student => ({
+        registration_no: student.registration_no,
+        fullName: `${student.fname} ${student.mname || ""} ${student.lname}`.trim(),
+        contact: student.contact,
+        email: student.email,
+      })),
+    });
+  } catch (error) {
+    console.error("Get Student Registration Numbers Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
