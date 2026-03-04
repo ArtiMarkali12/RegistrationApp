@@ -85,17 +85,254 @@
 
 
 
+// const Student = require("../models/student.model");
+// const Enquiry = require("../models/enquiry.model");
+// const studentService = require("../services/student.service");
+
+// // ==========================
+// // Create new student
+// // ==========================
+// exports.createStudent = async (req, res, next) => {
+//   try {
+//     const student = new Student(req.body);
+//     await student.save();
+//     res.status(201).json({
+//       success: true,
+//       data: student,
+//       message: "Student registered successfully",
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// // ==========================
+// // Get all students
+// // ==========================
+// exports.getAllStudents = async (req, res, next) => {
+//   try {
+//     const students = await Student.find()
+//       .populate("eid", "fname lname")    // Employee details
+//       .populate("courseId", "name feesAmount duration"); // Course details
+
+//     res.status(200).json({
+//       success: true,
+//       count: students.length,
+//       data: students,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// // ==========================
+// // Get single student by stdId
+// // ==========================
+// exports.getStudentByStdId = async (req, res, next) => {
+//   try {
+//     const student = await Student.findOne({ stdId: req.params.stdId })
+//       .populate("eid", "fname lname")
+//       .populate("courseId", "name feesAmount duration");
+
+//     if (!student) {
+//       return res.status(404).json({ success: false, message: "Student not found" });
+//     }
+
+//     res.status(200).json({ success: true, data: student });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// // ==========================
+// // Update student by stdId
+// // ==========================
+// exports.updateStudent = async (req, res, next) => {
+//   try {
+//     const student = await Student.findOneAndUpdate(
+//       { stdId: req.params.stdId },
+//       req.body,
+//       { new: true, runValidators: true }
+//     );
+
+//     if (!student) {
+//       return res.status(404).json({ success: false, message: "Student not found" });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       data: student,
+//       message: "Student updated successfully",
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// // ==========================
+// // Delete student by stdId
+// // ==========================
+// exports.deleteStudent = async (req, res, next) => {
+//   try {
+//     const student = await Student.findOneAndDelete({ stdId: req.params.stdId });
+
+//     if (!student) {
+//       return res.status(404).json({ success: false, message: "Student not found" });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Student deleted successfully",
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// // ==========================
+// // Get student + enquiry by contact number
+// // ==========================
+// exports.getStudentDetailsByContact = async (req, res, next) => {
+//   try {
+//     const contact = req.params.contact;
+
+//     // Enquiry search
+//     const enquiry = await Enquiry.findOne({ contact })
+//       .populate("eid", "fname lname")       // Employee details
+//       .populate({
+//         path: "courseName",
+//         populate: [
+//           { path: "courseId", select: "name feesAmount duration requiredQualification" },
+//           { path: "techId", select: "techName techId duration version" }
+//         ]
+//       });
+
+//     // Student search
+//     const student = await Student.findOne({ contact })
+//       .populate("eid", "fname lname")
+//       .populate("courseId", "name feesAmount duration requiredQualification");
+
+//     if (!enquiry && !student) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "No enquiry or student registration found for this contact number",
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       data: {
+//         enquiry: enquiry || null,
+//         student: student || null,
+//       },
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
+
+// /* ================= GET ALL STUDENTS ================= */
+// exports.getAllStudents = async (req, res, next) => {
+//   try {
+//     const students = await studentService.getAllStudents();
+
+//     res.status(200).json({
+//       success: true,
+//       count: students.length,
+//       data: students,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// /* ================= GET STUDENT BY MONGODB _ID ================= */
+// exports.getStudentById = async (req, res, next) => {
+//   try {
+//     const student = await studentService.getStudentById(req.params.id);
+
+//     if (!student) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Student not found",
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       data: student,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// /* ================= GET STUDENT BY REGISTRATION NUMBER ================= */
+// exports.getStudentByRegistrationNo = async (req, res, next) => {
+//   try {
+//     const student = await studentService.getStudentByRegistrationNo(
+//       req.params.registration_no
+//     );
+
+//     if (!student) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Student not found",
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       data: student,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
+
+
+
+
+
 const Student = require("../models/student.model");
-const Enquiry = require("../models/enquiry.model");
+const sharp = require("sharp");
 const studentService = require("../services/student.service");
 
-// ==========================
-// Create new student
-// ==========================
+/* ================= CREATE ================= */
 exports.createStudent = async (req, res, next) => {
   try {
-    const student = new Student(req.body);
-    await student.save();
+    const studentData = { ...req.body };
+
+    // PHOTO
+    if (req.files?.photo) {
+      const compressedPhoto = await sharp(req.files.photo[0].buffer)
+        .resize(300, 300)
+        .jpeg({ quality: 70 })
+        .toBuffer();
+
+      studentData.photo =
+        `data:image/jpeg;base64,` +
+        compressedPhoto.toString("base64");
+    }
+
+    // SIGNATURE
+    if (req.files?.signature) {
+      const compressedSign = await sharp(req.files.signature[0].buffer)
+        .resize(300, 150)
+        .jpeg({ quality: 70 })
+        .toBuffer();
+
+      studentData.signature =
+        `data:image/jpeg;base64,` +
+        compressedSign.toString("base64");
+    }
+
+    const student = await Student.create(studentData);
+
     res.status(201).json({
       success: true,
       data: student,
@@ -106,15 +343,10 @@ exports.createStudent = async (req, res, next) => {
   }
 };
 
-// ==========================
-// Get all students
-// ==========================
+/* ================= GET ALL ================= */
 exports.getAllStudents = async (req, res, next) => {
   try {
-    const students = await Student.find()
-      .populate("eid", "fname lname")    // Employee details
-      .populate("courseId", "name feesAmount duration"); // Course details
-
+    const students = await studentService.getAllStudents();
     res.status(200).json({
       success: true,
       count: students.length,
@@ -125,18 +357,12 @@ exports.getAllStudents = async (req, res, next) => {
   }
 };
 
-// ==========================
-// Get single student by stdId
-// ==========================
-exports.getStudentByStdId = async (req, res, next) => {
+/* ================= GET BY ID ================= */
+exports.getStudentById = async (req, res, next) => {
   try {
-    const student = await Student.findOne({ stdId: req.params.stdId })
-      .populate("eid", "fname lname")
-      .populate("courseId", "name feesAmount duration");
-
-    if (!student) {
+    const student = await studentService.getStudentById(req.params.id);
+    if (!student)
       return res.status(404).json({ success: false, message: "Student not found" });
-    }
 
     res.status(200).json({ success: true, data: student });
   } catch (error) {
@@ -144,20 +370,57 @@ exports.getStudentByStdId = async (req, res, next) => {
   }
 };
 
-// ==========================
-// Update student by stdId
-// ==========================
+/* ================= GET BY REGISTRATION ================= */
+exports.getStudentByRegistrationNo = async (req, res, next) => {
+  try {
+    const student = await studentService.getStudentByRegistrationNo(
+      req.params.registration_no
+    );
+
+    if (!student)
+      return res.status(404).json({ success: false, message: "Student not found" });
+
+    res.status(200).json({ success: true, data: student });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* ================= UPDATE ================= */
 exports.updateStudent = async (req, res, next) => {
   try {
+    const studentData = { ...req.body };
+
+    if (req.files?.photo) {
+      const compressedPhoto = await sharp(req.files.photo[0].buffer)
+        .resize(300, 300)
+        .jpeg({ quality: 70 })
+        .toBuffer();
+
+      studentData.photo =
+        `data:image/jpeg;base64,` +
+        compressedPhoto.toString("base64");
+    }
+
+    if (req.files?.signature) {
+      const compressedSign = await sharp(req.files.signature[0].buffer)
+        .resize(300, 150)
+        .jpeg({ quality: 70 })
+        .toBuffer();
+
+      studentData.signature =
+        `data:image/jpeg;base64,` +
+        compressedSign.toString("base64");
+    }
+
     const student = await Student.findOneAndUpdate(
-      { stdId: req.params.stdId },
-      req.body,
+      { registration_no: req.params.registration_no },
+      studentData,
       { new: true, runValidators: true }
     );
 
-    if (!student) {
+    if (!student)
       return res.status(404).json({ success: false, message: "Student not found" });
-    }
 
     res.status(200).json({
       success: true,
@@ -169,123 +432,19 @@ exports.updateStudent = async (req, res, next) => {
   }
 };
 
-// ==========================
-// Delete student by stdId
-// ==========================
+/* ================= DELETE ================= */
 exports.deleteStudent = async (req, res, next) => {
   try {
-    const student = await Student.findOneAndDelete({ stdId: req.params.stdId });
+    const student = await Student.findOneAndDelete({
+      registration_no: req.params.registration_no,
+    });
 
-    if (!student) {
+    if (!student)
       return res.status(404).json({ success: false, message: "Student not found" });
-    }
 
     res.status(200).json({
       success: true,
       message: "Student deleted successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ==========================
-// Get student + enquiry by contact number
-// ==========================
-exports.getStudentDetailsByContact = async (req, res, next) => {
-  try {
-    const contact = req.params.contact;
-
-    // Enquiry search
-    const enquiry = await Enquiry.findOne({ contact })
-      .populate("eid", "fname lname")       // Employee details
-      .populate({
-        path: "courseName",
-        populate: [
-          { path: "courseId", select: "name feesAmount duration requiredQualification" },
-          { path: "techId", select: "techName techId duration version" }
-        ]
-      });
-
-    // Student search
-    const student = await Student.findOne({ contact })
-      .populate("eid", "fname lname")
-      .populate("courseId", "name feesAmount duration requiredQualification");
-
-    if (!enquiry && !student) {
-      return res.status(404).json({
-        success: false,
-        message: "No enquiry or student registration found for this contact number",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: {
-        enquiry: enquiry || null,
-        student: student || null,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-
-
-/* ================= GET ALL STUDENTS ================= */
-exports.getAllStudents = async (req, res, next) => {
-  try {
-    const students = await studentService.getAllStudents();
-
-    res.status(200).json({
-      success: true,
-      count: students.length,
-      data: students,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/* ================= GET STUDENT BY MONGODB _ID ================= */
-exports.getStudentById = async (req, res, next) => {
-  try {
-    const student = await studentService.getStudentById(req.params.id);
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: student,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/* ================= GET STUDENT BY REGISTRATION NUMBER ================= */
-exports.getStudentByRegistrationNo = async (req, res, next) => {
-  try {
-    const student = await studentService.getStudentByRegistrationNo(
-      req.params.registration_no
-    );
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: student,
     });
   } catch (error) {
     next(error);
