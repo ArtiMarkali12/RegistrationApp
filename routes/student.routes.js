@@ -106,6 +106,7 @@ router.post(
 router.get("/", studentController.getAllStudents);
 router.get("/id/:id", studentController.getStudentById);
 router.get("/registration/:registration_no", studentController.getStudentByRegistrationNo);
+router.get("/search/name", studentController.getStudentByName);
 
 // UPDATE
 router.put(

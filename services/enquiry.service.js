@@ -85,7 +85,24 @@ const getAllEnquiries = async () => {
   }
 };
 
+/* ================= GET ENQUIRY BY NAME (CASE-INSENSITIVE SEARCH) ================= */
+const getEnquiryByName = async (name) => {
+  const regex = new RegExp(name, "i");
+  
+  return await Enquiry.find({
+    $or: [
+      { fname: regex },
+      { lname: regex },
+      { mname: regex }
+    ]
+  })
+    .populate("eid", "fname lname email")
+    .populate("courseName", "name feesAmount duration")
+    .sort({ createdAt: -1 });
+};
+
 module.exports = {
   createEnquiry,
   getAllEnquiries,
+  getEnquiryByName,
 };

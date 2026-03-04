@@ -77,7 +77,42 @@ const getAllEnquiries = async (req, res) => {
   }
 };
 
+const getEnquiryByName = async (req, res) => {
+  try {
+    const { name } = req.query;
+
+    if (!name || name.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a name to search",
+      });
+    }
+
+    const enquiries = await enquiryService.getEnquiryByName(name.trim());
+
+    if (enquiries.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No enquiries found with name "${name}"`,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: enquiries.length,
+      data: enquiries,
+    });
+  } catch (error) {
+    console.error("Get Enquiry By Name Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to search enquiries",
+    });
+  }
+};
+
 module.exports = {
   createEnquiry,
   getAllEnquiries,
+  getEnquiryByName,
 };

@@ -386,6 +386,37 @@ exports.getStudentByRegistrationNo = async (req, res, next) => {
   }
 };
 
+/* ================= GET BY NAME ================= */
+exports.getStudentByName = async (req, res, next) => {
+  try {
+    const { name } = req.query;
+
+    if (!name || name.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a student name to search",
+      });
+    }
+
+    const students = await studentService.getStudentByName(name.trim());
+
+    if (students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No students found with name "${name}"`,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: students.length,
+      data: students,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /* ================= UPDATE ================= */
 exports.updateStudent = async (req, res, next) => {
   try {

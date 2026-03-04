@@ -70,8 +70,25 @@ const getStudentByRegistrationNo = async (registration_no) => {
     .populate("courseId", "name feesAmount duration");
 };
 
+/* ================= GET STUDENT BY NAME (CASE-INSENSITIVE SEARCH) ================= */
+const getStudentByName = async (name) => {
+  // Case-insensitive regex search on fname, lname, or full name
+  const regex = new RegExp(name, "i"); // "i" flag for case-insensitive
+  
+  return await Student.find({
+    $or: [
+      { fname: regex },
+      { lname: regex },
+      { mname: regex }
+    ]
+  })
+    .populate("eid", "fname lname")
+    .populate("courseId", "name feesAmount duration");
+};
+
 module.exports = {
   getAllStudents,
   getStudentById,
   getStudentByRegistrationNo,
+  getStudentByName,
 };
