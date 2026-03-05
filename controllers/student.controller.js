@@ -451,6 +451,51 @@ exports.getStudentByName = async (req, res, next) => {
   }
 };
 
+/* ================= GET STUDENTS BY COURSE NAME ================= */
+exports.getStudentsByCourseName = async (req, res, next) => {
+  try {
+    const { courseName } = req.params;
+
+    if (!courseName || courseName.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a course name",
+      });
+    }
+
+    // Find course by name (case-insensitive)
+    const Course = require("../models/course.model");
+    const course = await Course.findOne({ name: new RegExp(courseName, "i") });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: `Course "${courseName}" not found`,
+      });
+    }
+
+    // Find students by courseId
+    const students = await Student.find({ courseId: course._id })
+      .populate("eid", "fname lname")
+      .populate("courseId", "name feesAmount duration");
+
+    if (students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No students enrolled in "${course.name}"`,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: students.length,
+      data: students,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /* ================= GET STUDENTS BY REGISTRATION NUMBER (LIST) ================= */
 exports.getStudentRegistrationNumbers = async (req, res) => {
   try {
