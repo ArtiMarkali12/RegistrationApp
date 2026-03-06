@@ -109,6 +109,7 @@ router.get("/registration/:registration_no", studentController.getStudentByRegis
 router.get("/search/name", studentController.getStudentByName);
 router.get("/course/:courseName", studentController.getStudentsByCourseName);
 router.get("/registration-numbers", studentController.getStudentRegistrationNumbers);
+router.get("/enquiry/:enquiryNumber", studentController.getStudentByEnquiryNumber);
 
 // UPDATE
 router.put(

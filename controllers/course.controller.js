@@ -102,3 +102,32 @@ exports.deleteCourse = async (req, res, next) => {
     next(error);
   }
 };
+
+// 🔍 Get Course by Name or ID
+exports.getCourseByNameOrId = async (req, res, next) => {
+  try {
+    const { identifier } = req.params;
+    
+    // Check if identifier is a valid ObjectId
+    const course = await Course.findOne({
+      $or: [
+        { _id: identifier },
+        { name: new RegExp(`^${identifier}$`, "i") }
+      ]
+    });
+    
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found"
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: course
+    });
+  } catch (error) {
+    next(error);
+  }
+};

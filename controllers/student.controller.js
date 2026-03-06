@@ -593,3 +593,30 @@ exports.deleteStudent = async (req, res, next) => {
     next(error);
   }
 };
+
+/* ================= GET STUDENT BY ENQUIRY NUMBER ================= */
+exports.getStudentByEnquiryNumber = async (req, res, next) => {
+  try {
+    const { enquiryNumber } = req.params;
+
+    const student = await Student.findOne({
+      registration_no: new RegExp(`^${enquiryNumber}$`, "i")
+    })
+      .populate("eid", "fname lname email designation")
+      .populate("courseId", "name feesAmount duration");
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found for this enquiry number"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: student
+    });
+  } catch (error) {
+    next(error);
+  }
+};
