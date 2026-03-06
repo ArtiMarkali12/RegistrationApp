@@ -55,6 +55,14 @@ const empRegSchema = new mongoose.Schema(
     otpExpires: {
       type: Date,
     },
+    accessRights: {
+      type: [String],
+      default: []
+    },
+    isBlocked: {
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );

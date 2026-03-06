@@ -154,7 +154,7 @@ const studentSchema = new mongoose.Schema(
 
     eid: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Employee",
+      ref: "EmployeeReg",
       required: true,
     },
 

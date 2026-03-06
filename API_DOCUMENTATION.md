@@ -7,16 +7,68 @@ http://localhost:5000/api
 
 ---
 
+## 🔥 FIRST: Create Employee (Registration)
+
+### Register Employee
+```
+POST /empReg
+```
+
+**Postman Example:**
+```
+POST http://localhost:5000/api/empReg
+Content-Type: application/json
+
+Body:
+{
+  "fname": "John",
+  "mname": "Kumar",
+  "lname": "Doe",
+  "designation": "Manager",
+  "dept_id": "67a1234567890abcdef12340",
+  "gender": "Male",
+  "qualification": "MBA",
+  "email": "john.doe@example.com",
+  "mobileNo": "9876543210",
+  "password": "password123",
+  "accessRights": ["ADMIN", "HR", "MANAGE_EMPLOYEES"],
+  "isBlocked": false
+}
+```
+
+**Expected Response (201):**
+```json
+{
+  "success": true,
+  "message": "Employee Registered Successfully",
+  "data": {
+    "_id": "69a18858e0cd7077fed08847",
+    "fname": "John",
+    "mname": "Kumar",
+    "lname": "Doe",
+    "designation": "Manager",
+    "email": "john.doe@example.com",
+    "mobileNo": "9876543210",
+    "accessRights": ["ADMIN", "HR", "MANAGE_EMPLOYEES"],
+    "isBlocked": false
+  }
+}
+```
+
+⚠️ **Save the `_id` from response** - you'll need it for other APIs!
+
+---
+
 ## ✅ EMPLOYEE APIs
 
-### 1. Get Employee by Employee ID
+### 1. Get Employee by Employee ID (MongoDB _id)
 ```
 GET /employees/:employeeId
 ```
 
 **Postman Example:**
 ```
-GET http://localhost:5000/api/employees/101
+GET http://localhost:5000/api/employees/69a18858e0cd7077fed08847
 ```
 
 **Expected Response (200):**
@@ -24,8 +76,7 @@ GET http://localhost:5000/api/employees/101
 {
   "success": true,
   "data": {
-    "_id": "...",
-    "employeeId": 101,
+    "_id": "69a18858e0cd7077fed08847",
     "fname": "John",
     "lname": "Doe",
     "email": "john@example.com",
@@ -45,7 +96,7 @@ PUT /employees/:employeeId/password
 
 **Postman Example:**
 ```
-PUT http://localhost:5000/api/employees/101/password
+PUT http://localhost:5000/api/employees/69a18858e0cd7077fed08847/password
 Content-Type: application/json
 
 Body:
@@ -78,7 +129,7 @@ DELETE /employees/:employeeId
 
 **Postman Example:**
 ```
-DELETE http://localhost:5000/api/employees/101
+DELETE http://localhost:5000/api/employees/69a18858e0cd7077fed08847
 ```
 
 **Expected Response (200):**
@@ -98,7 +149,7 @@ PUT /employees/:employeeId/block
 
 **Postman Example:**
 ```
-PUT http://localhost:5000/api/employees/101/block
+PUT http://localhost:5000/api/employees/69a18858e0cd7077fed08847/block
 ```
 
 **Expected Response (200):**
@@ -107,8 +158,7 @@ PUT http://localhost:5000/api/employees/101/block
   "success": true,
   "message": "Employee blocked successfully",
   "data": {
-    "_id": "...",
-    "employeeId": 101,
+    "_id": "69a18858e0cd7077fed08847",
     "fname": "John",
     "isBlocked": true
   }
@@ -135,8 +185,8 @@ GET http://localhost:5000/api/employees/blocked
   "data": [
     {
       "_id": "...",
-      "employeeId": 101,
       "fname": "John",
+      "lname": "Doe",
       "isBlocked": true
     }
   ]
@@ -152,7 +202,7 @@ PUT /employees/:employeeId/rights
 
 **Postman Example:**
 ```
-PUT http://localhost:5000/api/employees/101/rights
+PUT http://localhost:5000/api/employees/69a18858e0cd7077fed08847/rights
 Content-Type: application/json
 
 Body:
@@ -167,8 +217,8 @@ Body:
   "success": true,
   "message": "Employee rights updated successfully",
   "data": {
-    "_id": "...",
-    "employeeId": 101,
+    "_id": "69a18858e0cd7077fed08847",
+    "fname": "John",
     "accessRights": ["ADMIN", "HR", "FINANCE", "MANAGE_COURSES"]
   }
 }
@@ -196,8 +246,8 @@ GET http://localhost:5000/api/employees/rights
   "data": [
     {
       "_id": "...",
-      "employeeId": 101,
       "fname": "John",
+      "lname": "Doe",
       "accessRights": ["ADMIN", "HR"]
     }
   ]
@@ -245,8 +295,8 @@ GET http://localhost:5000/api/courses/search/67a1234567890abcdef12346
 ## ✅ STUDENT APIs
 
 ### 9. Get Student by Enquiry Number
-```
-GET /registration/enquiry/:enquiryNumber
+```/registration/enquiry/:enquiryNumber
+GET 
 ```
 
 **Postman Example:**
@@ -282,43 +332,63 @@ GET http://localhost:5000/api/registration/enquiry/ENQ-2025-001
 
 ## 📝 SAMPLE TEST DATA FOR POSTMAN
 
-### Create Employee (First create this)
+### Create Employee 1 (Admin)
 ```
-POST http://localhost:5000/api/employees
+POST http://localhost:5000/api/empReg
 Content-Type: application/json
 
 {
-  "employeeId": 101,
   "fname": "John",
+  "mname": "Kumar",
   "lname": "Doe",
+  "designation": "Manager",
+  "dept_id": "67a1234567890abcdef12340",
+  "gender": "Male",
+  "qualification": "MBA",
   "email": "john.doe@example.com",
   "mobileNo": "9876543210",
   "password": "password123",
-  "designation": "Manager",
-  "gender": "Male",
-  "qualification": "MBA",
-  "accessRights": ["ADMIN", "HR", "MANAGE_EMPLOYEES"],
-  "isBlocked": false
+  "accessRights": ["ADMIN", "HR", "MANAGE_EMPLOYEES"]
 }
 ```
 
-### Create Another Employee
+### Create Employee 2 (HR)
 ```
-POST http://localhost:5000/api/employees
+POST http://localhost:5000/api/empReg
 Content-Type: application/json
 
 {
-  "employeeId": 102,
   "fname": "Sarah",
+  "mname": "",
   "lname": "Johnson",
+  "designation": "HR Executive",
+  "dept_id": "67a1234567890abcdef12340",
+  "gender": "Female",
+  "qualification": "MBA HR",
   "email": "sarah.j@example.com",
   "mobileNo": "8765432109",
   "password": "secure123",
-  "designation": "HR Executive",
-  "gender": "Female",
-  "qualification": "MBA HR",
-  "accessRights": ["HR", "RECRUITMENT"],
-  "isBlocked": false
+  "accessRights": ["HR", "RECRUITMENT"]
+}
+```
+
+### Create Employee 3 (Finance)
+```
+POST http://localhost:5000/api/empReg
+Content-Type: application/json
+
+{
+  "fname": "Michael",
+  "mname": "James",
+  "lname": "Brown",
+  "designation": "Accountant",
+  "dept_id": "67a1234567890abcdef12340",
+  "gender": "Male",
+  "qualification": "B.Com",
+  "email": "michael.b@example.com",
+  "mobileNo": "7654321098",
+  "password": "finance123",
+  "accessRights": ["FINANCE", "ACCOUNTS"]
 }
 ```
 
@@ -340,27 +410,32 @@ Content-Type: application/json
 
 ## 🧪 TESTING SEQUENCE
 
-1. **First:** Create employee with POST `/employees`
-2. **Then test:**
-   - GET `/employees/101` ✅
-   - PUT `/employees/101/password` ✅
-   - PUT `/employees/101/rights` ✅
-   - PUT `/employees/101/block` ✅
-   - GET `/employees/blocked` ✅
-   - GET `/employees/rights?right=ADMIN` ✅
-   - DELETE `/employees/101` ✅
+### Step 1: Create Employees First
+1. `POST /empReg` - Create John (Admin) → Save `_id`
+2. `POST /empReg` - Create Sarah (HR)
+3. `POST /empReg` - Create Michael (Finance)
 
-3. **For Course:**
-   - GET `/courses/search/Full Stack Development` ✅
+### Step 2: Test Employee APIs
+4. `GET /employees/<John's _id>` ✅
+5. `PUT /employees/<John's _id>/password` ✅
+6. `PUT /employees/<John's _id>/rights` ✅
+7. `PUT /employees/<John's _id>/block` ✅
+8. `GET /employees/blocked` ✅
+9. `GET /employees/rights?right=ADMIN` ✅
+10. `DELETE /employees/<John's _id>` ✅ (test at end)
 
-4. **For Student:**
-   - GET `/registration/enquiry/ENQ-2025-001` ✅
+### Step 3: Test Course API
+11. `GET /courses/search/Full Stack Development` ✅
+
+### Step 4: Test Student API
+12. `GET /registration/enquiry/ENQ-2025-001` ✅
 
 ---
 
 ## ⚠️ NOTES
 
-- Password is auto-hashed on save
-- Employee ID must be unique
-- Access rights is an array of strings
-- isBlocked defaults to false
+- **dept_id**: You need a valid department MongoDB ObjectId. First create a department or use existing one's `_id`
+- **Password is auto-hashed** on save (in empReg.controller.js)
+- **accessRights** is an array of strings
+- **isBlocked** defaults to false
+- All employee APIs use MongoDB `_id`, not numeric ID

@@ -1,4 +1,4 @@
-const Employee = require("../models/employee.model");
+const Employee = require("../models/empReg.model");
 const bcrypt = require("bcryptjs");
 
 const createEmployee = async (req, res, next) => {
@@ -25,11 +25,12 @@ const getAllEmployees = async (req, res, next) => {
   }
 };
 
-// 🔍 Get Employee by Employee ID
+// 🔍 Get Employee by Employee ID (MongoDB _id)
 const getEmployeeById = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
-    const employee = await Employee.findOne({ employeeId });
+    
+    const employee = await Employee.findById(employeeId);
     
     if (!employee) {
       return res.status(404).json({
@@ -74,7 +75,7 @@ const updateEmployeePassword = async (req, res, next) => {
       });
     }
     
-    const employee = await Employee.findOne({ employeeId });
+    const employee = await Employee.findById(employeeId);
     
     if (!employee) {
       return res.status(404).json({
@@ -109,7 +110,8 @@ const updateEmployeePassword = async (req, res, next) => {
 const deleteEmployee = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
-    const deletedEmployee = await Employee.findOneAndDelete({ employeeId });
+    
+    const deletedEmployee = await Employee.findByIdAndDelete(employeeId);
     
     if (!deletedEmployee) {
       return res.status(404).json({
@@ -132,7 +134,7 @@ const blockEmployee = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
     
-    const employee = await Employee.findOne({ employeeId });
+    const employee = await Employee.findById(employeeId);
     
     if (!employee) {
       return res.status(404).json({
@@ -182,7 +184,7 @@ const updateEmployeeRights = async (req, res, next) => {
       });
     }
     
-    const employee = await Employee.findOne({ employeeId });
+    const employee = await Employee.findById(employeeId);
     
     if (!employee) {
       return res.status(404).json({

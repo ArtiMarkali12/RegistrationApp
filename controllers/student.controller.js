@@ -599,11 +599,41 @@ exports.getStudentByEnquiryNumber = async (req, res, next) => {
   try {
     const { enquiryNumber } = req.params;
 
-    const student = await Student.findOne({
+    // First try to find student by registration_no
+    let student = await Student.findOne({
       registration_no: new RegExp(`^${enquiryNumber}$`, "i")
     })
       .populate("eid", "fname lname email designation")
       .populate("courseId", "name feesAmount duration");
+
+    // If not found, try to find by contact number (in case enquiry number is contact)
+    if (!student) {
+      student = await Student.findOne({
+        contact: enquiryNumber
+      })
+        .populate("eid", "fname lname email designation")
+        .populate("courseId", "name feesAmount duration");
+    }
+
+    // If still not found, try to find enquiry first, then match student by contact
+    if (!student) {
+      const Enquiry = require("../models/enquiry.model");
+      const enquiry = await Enquiry.findOne({
+        enquiryNumber: new RegExp(`^${enquiryNumber}$`, "i")
+      });
+
+      if (enquiry) {
+        // Try to find student with same contact or email as enquiry
+        student = await Student.findOne({
+          $or: [
+            { contact: enquiry.contact },
+            { email: enquiry.email }
+          ]
+        })
+          .populate("eid", "fname lname email designation")
+          .populate("courseId", "name feesAmount duration");
+      }
+    }
 
     if (!student) {
       return res.status(404).json({

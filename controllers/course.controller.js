@@ -108,13 +108,20 @@ exports.getCourseByNameOrId = async (req, res, next) => {
   try {
     const { identifier } = req.params;
     
-    // Check if identifier is a valid ObjectId
-    const course = await Course.findOne({
-      $or: [
-        { _id: identifier },
-        { name: new RegExp(`^${identifier}$`, "i") }
-      ]
-    });
+    let course;
+    
+    // Check if identifier looks like a MongoDB ObjectId (24 hex characters)
+    if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
+      // It's likely an ObjectId, search by _id first
+      course = await Course.findById(identifier);
+    }
+    
+    // If not found by _id or not an ObjectId, search by name
+    if (!course) {
+      course = await Course.findOne({ 
+        name: new RegExp(`^${identifier}$`, "i") 
+      });
+    }
     
     if (!course) {
       return res.status(404).json({
@@ -128,6 +135,29 @@ exports.getCourseByNameOrId = async (req, res, next) => {
       data: course
     });
   } catch (error) {
-    next(error);
+    // If Cast error occurs, try searching by name instead
+    if (error.name === 'CastError') {
+      try {
+        const course = await Course.findOne({ 
+          name: new RegExp(`^${identifier}$`, "i") 
+        });
+        
+        if (!course) {
+          return res.status(404).json({
+            success: false,
+            message: "Course not found"
+          });
+        }
+        
+        res.status(200).json({
+          success: true,
+          data: course
+        });
+      } catch (nameError) {
+        next(nameError);
+      }
+    } else {
+      next(error);
+    }
   }
 };
