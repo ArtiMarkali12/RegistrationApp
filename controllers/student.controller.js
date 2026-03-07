@@ -308,31 +308,59 @@ exports.createStudent = async (req, res, next) => {
   try {
     const studentData = { ...req.body };
 
+    // Validate required fields
+    const requiredFields = ["registration_no", "fname", "lname", "contact", "email", "eid", "courseId"];
+    const missingFields = requiredFields.filter(field => !studentData[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(", ")}`
+      });
+    }
+
     // PHOTO
     if (req.files?.photo) {
-      const compressedPhoto = await sharp(req.files.photo[0].buffer)
-        .resize(300, 300)
-        .jpeg({ quality: 70 })
-        .toBuffer();
+      try {
+        const compressedPhoto = await sharp(req.files.photo[0].buffer)
+          .resize(300, 300)
+          .jpeg({ quality: 70 })
+          .toBuffer();
 
-      studentData.photo =
-        `data:image/jpeg;base64,` +
-        compressedPhoto.toString("base64");
+        studentData.photo =
+          `data:image/jpeg;base64,` +
+          compressedPhoto.toString("base64");
+      } catch (photoError) {
+        console.error("Photo processing error:", photoError.message);
+      }
     }
 
     // SIGNATURE
     if (req.files?.signature) {
-      const compressedSign = await sharp(req.files.signature[0].buffer)
-        .resize(300, 150)
-        .jpeg({ quality: 70 })
-        .toBuffer();
+      try {
+        const compressedSign = await sharp(req.files.signature[0].buffer)
+          .resize(300, 150)
+          .jpeg({ quality: 70 })
+          .toBuffer();
 
-      studentData.signature =
-        `data:image/jpeg;base64,` +
-        compressedSign.toString("base64");
+        studentData.signature =
+          `data:image/jpeg;base64,` +
+          compressedSign.toString("base64");
+      } catch (signError) {
+        console.error("Signature processing error:", signError.message);
+      }
     }
 
     const student = await Student.create(studentData);
+
+    // Verify the student was actually saved
+    const savedStudent = await Student.findById(student._id);
+    if (!savedStudent) {
+      return res.status(500).json({
+        success: false,
+        message: "Student creation failed - data not saved"
+      });
+    }
 
     // 🎉 AUTO-CREATE FEES RECORD IF COURSE IS PROVIDED
     if (student.courseId) {
@@ -352,7 +380,7 @@ exports.createStudent = async (req, res, next) => {
             installmentNo: 0,
             feesStatus: "PENDING",
             statementDate: new Date(),
-            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             currentDate: new Date(),
             receiptNumber: `RCPT-INIT-${Date.now()}`,
             modeOfPayment: "CASH",
@@ -362,14 +390,13 @@ exports.createStudent = async (req, res, next) => {
           await Fees.create(feesData);
         }
       } catch (feeError) {
-        console.error("⚠️ Auto fees creation failed:", feeError.message);
         // Don't fail student registration if fees creation fails
       }
     }
 
     res.status(201).json({
       success: true,
-      data: student,
+      data: savedStudent,
       message: "Student registered successfully",
     });
   } catch (error) {
