@@ -92,6 +92,9 @@
 
 const mongoose = require("mongoose");
 
+// 🔹 Register Employee model (REQUIRED for populate to work)
+require("./employee.model");
+
 const enquirySchema = new mongoose.Schema(
   {
     fname: { type: String, required: true, trim: true },
