@@ -308,10 +308,17 @@ exports.createStudent = async (req, res, next) => {
   try {
     const studentData = { ...req.body };
 
+    // 🔹 Auto-generate registration number if not provided
+    if (!studentData.registration_no) {
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000);
+      studentData.registration_no = `STU-${timestamp}-${random}`;
+    }
+
     // Validate required fields
-    const requiredFields = ["registration_no", "fname", "lname", "contact", "email", "eid", "courseId"];
+    const requiredFields = ["fname", "lname", "contact", "email", "eid", "courseId"];
     const missingFields = requiredFields.filter(field => !studentData[field]);
-    
+
     if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,

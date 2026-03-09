@@ -149,6 +149,12 @@ const enquirySchema = new mongoose.Schema(
       unique: true,
       required: true,
     },
+
+    status: {
+      type: String,
+      enum: ["Pending", "In Progress", "Converted", "Closed", "Cancelled"],
+      default: "Pending",
+    },
   },
   { timestamps: true }
 );
