@@ -31,6 +31,8 @@ app.use("/api/departments", require("./routes/department.routes"));
 app.use("/api/empReg", require("./routes/empReg.routes"));
 
 app.use("/api/login", require("./routes/login.routes"));
+app.use("/api/notifications", require("./routes/notification.routes"));
+app.use("/api/super-admin", require("./routes/superAdmin.routes"));
 
 /* ❗ Error handler (ALWAYS LAST) */
 app.use(errorHandler);

@@ -39,6 +39,8 @@ exports.login = async (req, res, next) => {
         lname: employee.lname,
         email: employee.email,
         designation: employee.designation,
+        accessRights: employee.accessRights || [],
+        isBlocked: employee.isBlocked || false,
       },
     });
   } catch (error) {

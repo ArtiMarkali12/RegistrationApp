@@ -1,13 +1,42 @@
 const Employee = require("../models/empReg.model");
+const SuperAdmin = require("../models/superAdmin.model");
 const bcrypt = require("bcryptjs");
 
 const createEmployee = async (req, res, next) => {
   try {
-    const emp = await Employee.create(req.body);
-    res.status(201).json({
-      success: true,
-      data: emp
-    });
+    const { superAdminId } = req.body;
+
+    // Validate superAdminId if provided
+    if (superAdminId) {
+      const superAdmin = await SuperAdmin.findById(superAdminId);
+      if (!superAdmin) {
+        return res.status(404).json({
+          success: false,
+          message: "Super Admin not found"
+        });
+      }
+
+      const emp = await Employee.create(req.body);
+      
+      // Add employee to SuperAdmin's employees list
+      await SuperAdmin.findByIdAndUpdate(superAdminId, {
+        $push: { employees: emp._id }
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Employee created successfully",
+        data: emp
+      });
+    } else {
+      // Create employee without linking to SuperAdmin (backward compatibility)
+      const emp = await Employee.create(req.body);
+      res.status(201).json({
+        success: true,
+        message: "Employee created successfully",
+        data: emp
+      });
+    }
   } catch (err) {
     next(err);
   }

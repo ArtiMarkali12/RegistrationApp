@@ -37,6 +37,10 @@ const employeeSchema = new mongoose.Schema({
   qualification: {
     type: String
   },
+  superAdminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SuperAdmin"
+  },
   accessRights: {
     type: [String],
     default: []

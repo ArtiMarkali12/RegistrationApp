@@ -23,16 +23,16 @@ const empRegSchema = new mongoose.Schema(
     dept_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
-      required: true,
+      required: false,
     },
     gender: {
       type: String,
       enum: ["Male", "Female", "Other"],
-      required: true,
+      required: false,
     },
     qualification: {
       type: String,
-      required: true,
+      required: false,
     },
     email: {
       type: String,
