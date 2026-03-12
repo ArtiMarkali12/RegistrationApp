@@ -1,11 +1,5 @@
 const notificationService = require("../services/notification.service");
 
-/**
- * GET /api/notifications/fee-due
- * Get notifications for upcoming fee installment due dates
- * Query params:
- *  - days: Number of days threshold (default: 7)
- */
 const getFeeDueNotifications = async (req, res, next) => {
   try {
     const { employeeId } = req.query;

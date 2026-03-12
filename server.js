@@ -28,7 +28,7 @@ app.use("/api/courses", require("./routes/course.routes"));
 app.use("/api/technologies", require("./routes/technology.routes"));
 app.use("/api/courseTechs", require("./routes/courseTech.routes"));
 app.use("/api/departments", require("./routes/department.routes"));
-app.use("/api/empReg", require("./routes/empReg.routes"));
+
 
 app.use("/api/login", require("./routes/login.routes"));
 app.use("/api/notifications", require("./routes/notification.routes"));

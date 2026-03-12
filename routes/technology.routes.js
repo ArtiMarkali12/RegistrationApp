@@ -11,7 +11,7 @@ const {
 
 router.post("/", createTechnology);  // POST route for /api/technologies
 
-// बाकी routes
+// routes
 router.get("/", getTechnologies);
 router.get("/:id", getTechnologyById);
 router.put("/:id", updateTechnology);
