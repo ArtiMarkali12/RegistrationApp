@@ -8,17 +8,21 @@ router.get("/", controller.getAllEmployees);
 // 📋 Get Blocked Employees
 router.get("/blocked", controller.getBlockedEmployees);
 
-// 🔐 Get Employees by Access Rights
-router.get("/rights", controller.getEmployeesByAccessRights);
+// 📋 Get Unblocked Employees
+router.get("/unblocked", controller.getUnblockedEmployees);
+router.get("/unblock", controller.getUnblockedEmployees); // Alias
+
+// 🔍 Search Employees
+router.get("/search", controller.searchEmployees);
 
 // 🔐 Update Employee Password
 router.put("/:employeeId/password", controller.updateEmployeePassword);
 
 // 🚫 Block Employee
-router.put("/:employeeId/block", controller.blockEmployee);
+router.post("/:employeeId/block", controller.blockEmployee);
 
-// ✏️ Update Employee Rights
-router.put("/:employeeId/rights", controller.updateEmployeeRights);
+// ✅ Unblock Employee
+router.put("/:employeeId/unblock", controller.unblockEmployee);
 
 // 🔍 Get Employee by Employee ID
 router.get("/:employeeId", controller.getEmployeeById);

@@ -8,6 +8,9 @@ router.post("/", courseController.createCourse);
 // Get all courses
 router.get("/", courseController.getCourses);
 
+// Search courses by name
+router.get("/search", courseController.searchCourses);
+
 // Get single course by ID
 router.get("/:id", courseController.getCourseById);
 

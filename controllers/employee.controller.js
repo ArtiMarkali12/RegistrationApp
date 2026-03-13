@@ -1,8 +1,8 @@
-const Employee = require("../models/empReg.model");
+const Employee = require("../models/employee.model");
 const SuperAdmin = require("../models/superAdmin.model");
 const bcrypt = require("bcryptjs");
 
-const createEmployee = async (req, res, next) => {
+const createEmployee = async (req, res) => {
   try {
     const { superAdminId } = req.body;
 
@@ -17,13 +17,13 @@ const createEmployee = async (req, res, next) => {
       }
 
       const emp = await Employee.create(req.body);
-      
+
       // Add employee to SuperAdmin's employees list
       await SuperAdmin.findByIdAndUpdate(superAdminId, {
         $push: { employees: emp._id }
       });
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: "Employee created successfully",
         data: emp
@@ -31,229 +31,283 @@ const createEmployee = async (req, res, next) => {
     } else {
       // Create employee without linking to SuperAdmin (backward compatibility)
       const emp = await Employee.create(req.body);
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: "Employee created successfully",
         data: emp
       });
     }
   } catch (err) {
-    next(err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
-const getAllEmployees = async (req, res, next) => {
+const getAllEmployees = async (req, res) => {
   try {
     const emp = await Employee.find();
-    res.json({
+    return res.json({
       success: true,
       data: emp
     });
   } catch (err) {
-    next(err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
 // 🔍 Get Employee by Employee ID (MongoDB _id)
-const getEmployeeById = async (req, res, next) => {
+const getEmployeeById = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    
+
     const employee = await Employee.findById(employeeId);
-    
+
     if (!employee) {
       return res.status(404).json({
         success: false,
         message: "Employee not found"
       });
     }
-    
-    res.json({
+
+    return res.json({
       success: true,
       data: employee
     });
   } catch (err) {
-    next(err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
 // 🔐 Update Employee Password (using old password)
-const updateEmployeePassword = async (req, res, next) => {
+const updateEmployeePassword = async (req, res) => {
   try {
     const { employeeId } = req.params;
     const { oldPassword, newPassword, confirmPassword } = req.body;
-    
+
     if (!oldPassword || !newPassword || !confirmPassword) {
       return res.status(400).json({
         success: false,
         message: "Old password, new password and confirm password are required"
       });
     }
-    
+
     if (newPassword !== confirmPassword) {
       return res.status(400).json({
         success: false,
         message: "New password and confirm password do not match"
       });
     }
-    
+
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
         message: "Password must be at least 6 characters long"
       });
     }
-    
+
     const employee = await Employee.findById(employeeId);
-    
+
     if (!employee) {
       return res.status(404).json({
         success: false,
         message: "Employee not found"
       });
     }
-    
+
     const isMatch = await bcrypt.compare(oldPassword, employee.password);
-    
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
         message: "Old password is incorrect"
       });
     }
-    
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     employee.password = hashedPassword;
     await employee.save();
-    
-    res.json({
+
+    return res.json({
       success: true,
       message: "Password updated successfully"
     });
   } catch (err) {
-    next(err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
 // 🗑️ Delete Employee
-const deleteEmployee = async (req, res, next) => {
+const deleteEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    
+
     const deletedEmployee = await Employee.findByIdAndDelete(employeeId);
-    
+
     if (!deletedEmployee) {
       return res.status(404).json({
         success: false,
         message: "Employee not found"
       });
     }
-    
-    res.json({
+
+    return res.json({
       success: true,
       message: "Employee deleted successfully"
     });
   } catch (err) {
-    next(err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
 // 🚫 Block Employee (PUT request)
-const blockEmployee = async (req, res, next) => {
+const blockEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    
+
     const employee = await Employee.findById(employeeId);
-    
+
     if (!employee) {
       return res.status(404).json({
         success: false,
         message: "Employee not found"
       });
     }
-    
+
     employee.isBlocked = true;
     await employee.save();
-    
-    res.json({
+
+    return res.json({
       success: true,
       message: "Employee blocked successfully",
       data: employee
     });
   } catch (err) {
-    next(err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
 // 📋 Get All Blocked Employees
-const getBlockedEmployees = async (req, res, next) => {
+const getBlockedEmployees = async (req, res) => {
   try {
     const blockedEmployees = await Employee.find({ isBlocked: true });
-    
-    res.json({
+
+    return res.json({
       success: true,
       count: blockedEmployees.length,
       data: blockedEmployees
     });
   } catch (err) {
-    next(err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
-// ✏️ Update Employee Rights
-const updateEmployeeRights = async (req, res, next) => {
+// ✅ Unblock Employee (PUT request)
+const unblockEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const { accessRights } = req.body;
-    
-    if (!accessRights || !Array.isArray(accessRights)) {
-      return res.status(400).json({
-        success: false,
-        message: "accessRights must be an array"
-      });
-    }
-    
+
     const employee = await Employee.findById(employeeId);
-    
+
     if (!employee) {
       return res.status(404).json({
         success: false,
         message: "Employee not found"
       });
     }
-    
-    employee.accessRights = accessRights;
+
+    employee.isBlocked = false;
     await employee.save();
-    
-    res.json({
+
+    return res.json({
       success: true,
-      message: "Employee rights updated successfully",
+      message: "Employee unblocked successfully",
       data: employee
     });
   } catch (err) {
-    next(err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
-// 🔐 Get Employees by Access Rights
-const getEmployeesByAccessRights = async (req, res, next) => {
+// 📋 Get All Unblocked Employees
+const getUnblockedEmployees = async (req, res) => {
   try {
-    const { right } = req.query;
-    
-    let query = {};
-    if (right) {
-      query.accessRights = { $in: [right] };
+    const unblockedEmployees = await Employee.find({ isBlocked: false });
+
+    return res.json({
+      success: true,
+      count: unblockedEmployees.length,
+      data: unblockedEmployees
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+// 🔍 Search Employees by Name or Email (Partial Match)
+const searchEmployees = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a search query"
+      });
     }
-    
-    const employees = await Employee.find(query);
-    
-    res.json({
+
+    const employees = await Employee.find({
+      $or: [
+        { fname: new RegExp(query, "i") },
+        { lname: new RegExp(query, "i") },
+        { email: new RegExp(query, "i") }
+      ]
+    })
+      .populate("superAdminId", "fname lname email")
+      .sort({ fname: 1 });
+
+    if (employees.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No employees found matching "${query}"`
+      });
+    }
+
+    return res.json({
       success: true,
       count: employees.length,
       data: employees
     });
   } catch (err) {
-    next(err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
@@ -265,6 +319,7 @@ module.exports = {
   deleteEmployee,
   blockEmployee,
   getBlockedEmployees,
-  updateEmployeeRights,
-  getEmployeesByAccessRights
+  unblockEmployee,
+  getUnblockedEmployees,
+  searchEmployees
 };

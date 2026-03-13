@@ -14,4 +14,7 @@ router.get("/:id", controller.getDepartmentById);
 /* Get Department by Name */
 router.get("/name/:dept_name", controller.getDepartmentByName);
 
+/* Update Department */
+router.put("/:id", controller.updateDepartment);
+
 module.exports = router;

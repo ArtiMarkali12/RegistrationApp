@@ -1,6 +1,6 @@
 const Fees = require("../models/fees.model");
 const Student = require("../models/student.model");
-const Employee = require("../models/empReg.model");
+const Employee = require("../models/employee.model");
 
 /**
  * Get notifications for logged-in employee about upcoming fee due dates

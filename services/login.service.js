@@ -1,4 +1,4 @@
-const Employee = require("../models/empReg.model");
+const Employee = require("../models/employee.model");
 
 exports.loginEmployee = async (email, mobileNo) => {
   return await Employee.findOne({

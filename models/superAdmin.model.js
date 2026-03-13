@@ -28,7 +28,7 @@ const superAdminSchema = new mongoose.Schema(
     employees: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "EmployeeReg",
+        ref: "Employee",
       },
     ],
     students: [
@@ -40,6 +40,14 @@ const superAdminSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+
+    // Password Reset OTP Fields
+    resetPasswordOtp: {
+      type: String,
+    },
+    resetPasswordOtpExpires: {
+      type: Date,
     },
   },
   { timestamps: true }

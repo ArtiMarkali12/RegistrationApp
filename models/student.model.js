@@ -1,8 +1,5 @@
 const mongoose = require("mongoose");
 
-// 🔹 Register EmployeeReg model (REQUIRED for populate to work)
-require("./empReg.model");
-
 const studentSchema = new mongoose.Schema(
   {
     registration_no: {
@@ -46,7 +43,7 @@ const studentSchema = new mongoose.Schema(
 
     eid: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "EmployeeReg",
+      ref: "Employee",
       required: true,
     },
 

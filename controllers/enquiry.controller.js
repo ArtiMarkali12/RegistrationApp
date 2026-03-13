@@ -73,8 +73,90 @@ const getEnquiryByName = async (req, res) => {
   }
 };
 
+const getEnquiryById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const enquiry = await enquiryService.getEnquiryById(id);
+
+    if (!enquiry) {
+      return res.status(404).json({
+        success: false,
+        message: "Enquiry not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: enquiry,
+    });
+  } catch (error) {
+    console.error("Get Enquiry By ID Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch enquiry",
+    });
+  }
+};
+
+const updateEnquiry = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updatedEnquiry = await enquiryService.updateEnquiry(id, req.body);
+
+    if (!updatedEnquiry) {
+      return res.status(404).json({
+        success: false,
+        message: "Enquiry not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Enquiry updated successfully",
+      data: updatedEnquiry,
+    });
+  } catch (error) {
+    console.error("Update Enquiry Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update enquiry",
+    });
+  }
+};
+
+const deleteEnquiry = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedEnquiry = await enquiryService.deleteEnquiry(id);
+
+    if (!deletedEnquiry) {
+      return res.status(404).json({
+        success: false,
+        message: "Enquiry not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Enquiry deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete Enquiry Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete enquiry",
+    });
+  }
+};
+
 module.exports = {
   createEnquiry,
   getAllEnquiries,
   getEnquiryByName,
+  getEnquiryById,
+  updateEnquiry,
+  deleteEnquiry,
 };

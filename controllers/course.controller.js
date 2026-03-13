@@ -103,33 +103,66 @@ exports.deleteCourse = async (req, res, next) => {
   }
 };
 
+// 🔍 Search Courses by Name (Partial Match)
+exports.searchCourses = async (req, res, next) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a search query"
+      });
+    }
+
+    const courses = await Course.find({
+      name: new RegExp(query, "i")
+    }).sort({ name: 1 });
+
+    if (courses.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No courses found matching "${query}"`
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: courses.length,
+      data: courses
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // 🔍 Get Course by Name or ID
 exports.getCourseByNameOrId = async (req, res, next) => {
   try {
     const { identifier } = req.params;
-    
+
     let course;
-    
+
     // Check if identifier looks like a MongoDB ObjectId (24 hex characters)
     if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
       // It's likely an ObjectId, search by _id first
       course = await Course.findById(identifier);
     }
-    
+
     // If not found by _id or not an ObjectId, search by name
     if (!course) {
-      course = await Course.findOne({ 
-        name: new RegExp(`^${identifier}$`, "i") 
+      course = await Course.findOne({
+        name: new RegExp(`^${identifier}$`, "i")
       });
     }
-    
+
     if (!course) {
       return res.status(404).json({
         success: false,
         message: "Course not found"
       });
     }
-    
+
     res.status(200).json({
       success: true,
       data: course
@@ -138,17 +171,17 @@ exports.getCourseByNameOrId = async (req, res, next) => {
     // If Cast error occurs, try searching by name instead
     if (error.name === 'CastError') {
       try {
-        const course = await Course.findOne({ 
-          name: new RegExp(`^${identifier}$`, "i") 
+        const course = await Course.findOne({
+          name: new RegExp(`^${identifier}$`, "i")
         });
-        
+
         if (!course) {
           return res.status(404).json({
             success: false,
             message: "Course not found"
           });
         }
-        
+
         res.status(200).json({
           success: true,
           data: course

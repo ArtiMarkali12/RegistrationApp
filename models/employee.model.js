@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const employeeSchema = new mongoose.Schema({
   employeeId: {
     type: Number,
-    default: 1,
+    // default: 1,
     unique: true
   },
   fname: {
@@ -41,20 +41,15 @@ const employeeSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "SuperAdmin"
   },
-  accessRights: {
-    type: [String],
-    default: []
-  },
   isBlocked: {
     type: Boolean,
     default: false
   }
 }, { timestamps: true });
 
-employeeSchema.pre("save", async function(next) {
-  if (!this.isModified("password")) return next();
+employeeSchema.pre("save", async function() {
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 10);
-  next();
 });
 
 module.exports = mongoose.model("Employee", employeeSchema);
