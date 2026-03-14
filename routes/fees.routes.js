@@ -6,13 +6,24 @@ const feesController = require("../controllers/fees.controller");
 router.get("/payment-modes", feesController.getPaymentModes);
 router.get("/completed", feesController.getCompletedFees);
 router.get("/pending", feesController.getPendingFees);
-router.get("/registration/:registration_no", feesController.getFeesByRegistrationNo);
+router.get(
+  "/registration/:registration_no",
+  feesController.getFeesByRegistrationNo,
+);
 router.get("/receipt-counter", feesController.getReceiptCounter);
+
+/* Receipt Routes */
+router.post("/generate-receipt-pdf", feesController.generateReceiptPDF);
+router.post("/send-receipt-email", feesController.sendReceiptEmail);
+router.post("/send-fee-receipt", feesController.sendReceipt);
 
 /* CRUD Routes */
 router.post("/", feesController.createFees);
 router.get("/", feesController.getAllFees);
-router.get("/student/:studentId/summary", feesController.getFeesSummaryByStudent);
+router.get(
+  "/student/:studentId/summary",
+  feesController.getFeesSummaryByStudent,
+);
 router.get("/student/:studentId", feesController.getFeesByStudent);
 router.get("/:id", feesController.getFeesById);
 

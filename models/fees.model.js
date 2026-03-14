@@ -10,8 +10,8 @@ const feesSchema = new mongoose.Schema(
     },
 
     employeeId: {
-      type: Number,
-      default: 1,
+      type: mongoose.Schema.Types.Mixed, // Accept both ObjectId and Number
+      default: null,
     },
 
     /* ===== FEES DETAILS ===== */
@@ -30,7 +30,6 @@ const feesSchema = new mongoose.Schema(
     totalAmount: {
       type: Number,
       min: 0,
-      required: true,
     },
 
     totalPaid: {
@@ -43,12 +42,6 @@ const feesSchema = new mongoose.Schema(
       type: Number,
       min: 0,
       required: true,
-      default: 0,
-    },
-
-    installmentNo: {
-      type: Number,
-      min: 0,
       default: 0,
     },
 
@@ -67,6 +60,10 @@ const feesSchema = new mongoose.Schema(
     dueDate: {
       type: Date,
       required: true,
+    },
+
+    nextInstallmentDate: {
+      type: Date,
     },
 
     currentDate: {
@@ -100,7 +97,6 @@ const feesSchema = new mongoose.Schema(
     /* ===== PAYMENT HISTORY (Installment Tracking) ===== */
     paymentHistory: [
       {
-        installmentNo: Number,
         paidAmount: Number,
         modeOfPayment: String,
         transactionId: String,
@@ -109,7 +105,10 @@ const feesSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
-        employeeId: Number,
+        employeeId: {
+          type: mongoose.Schema.Types.Mixed, // Accept both ObjectId and Number
+        },
+        nextInstallmentDate: Date,
       },
     ],
   },
@@ -118,16 +117,20 @@ const feesSchema = new mongoose.Schema(
 
 // Pre-save hook to auto-calculate remaining amount and status
 feesSchema.pre("save", function () {
+  // Auto-calculate totalAmount if missing
+  if (!this.totalAmount || this.totalAmount <= 0) {
+    this.totalAmount = this.actualFees || 0;
+  }
+
   // Calculate remaining amount (handle undefined values)
   const totalAmount = this.totalAmount || 0;
   const totalPaid = this.totalPaid || 0;
-  
+
   this.remainingAmount = totalAmount - totalPaid;
 
   // Update fees status
   if (this.remainingAmount <= 0 && totalAmount > 0) {
     this.feesStatus = "COMPLETED";
-    this.installmentNo = 0; // Auto-set to 0 when fully paid
   } else if (totalPaid > 0) {
     this.feesStatus = "PARTIAL";
   } else {

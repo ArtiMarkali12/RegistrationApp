@@ -63,6 +63,11 @@ const enquirySchema = new mongoose.Schema(
       enum: ["Pending", "In Progress", "Converted", "Closed", "Cancelled"],
       default: "Pending",
     },
+
+    // Expected Registration Date (when student will come for registration)
+    expectedRegistrationDate: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

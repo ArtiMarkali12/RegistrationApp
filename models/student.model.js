@@ -58,8 +58,8 @@ const studentSchema = new mongoose.Schema(
     parentContact: String,
     parentOccupation: String,
 
-    photo: String,       // Base64 image
-    signature: String,   // Base64 image
+    photo: String, // Base64 image
+    signature: String, // Base64 image
 
     readyToWork: {
       type: Boolean,
@@ -76,8 +76,14 @@ const studentSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
+
+    aadhaarNumber: {
+      type: String,
+      trim: true,
+      match: [/^\d{12}$/, "Aadhaar number must be 12 digits"],
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Student", studentSchema);

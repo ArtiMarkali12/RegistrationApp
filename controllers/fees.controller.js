@@ -1,4 +1,3 @@
-
 const Fees = require("../models/fees.model");
 const Student = require("../models/student.model");
 const { getNextReceiptNumber } = require("../services/receipt.service");
@@ -16,9 +15,25 @@ exports.createFees = async (req, res) => {
     // Remove paidAmount from root as it's now in paymentHistory
     delete feesData.paidAmount;
 
-    // Auto-generate receipt number if not provided
+    // Auto-generate unique receipt number if not provided
     if (!feesData.receiptNumber) {
-      feesData.receiptNumber = await getNextReceiptNumber();
+      let receiptNumber;
+      let retryCount = 0;
+
+      do {
+        receiptNumber = await getNextReceiptNumber();
+        const existingReceipt = await Fees.findOne({ receiptNumber });
+        if (existingReceipt && retryCount < 10) {
+          console.log(
+            `Receipt ${receiptNumber} already exists, generating new one...`,
+          );
+          retryCount++;
+        } else {
+          break;
+        }
+      } while (retryCount < 10);
+
+      feesData.receiptNumber = receiptNumber;
     }
 
     const fees = new Fees(feesData);
@@ -42,7 +57,10 @@ exports.createFees = async (req, res) => {
 exports.getAllFees = async (req, res) => {
   try {
     const fees = await Fees.find()
-      .populate("studentId", "fname mname lname registration_no email contact courseId")
+      .populate(
+        "studentId",
+        "fname mname lname registration_no email contact courseId",
+      )
       .populate("employeeId", "fname lname");
 
     // Nested populate for course info
@@ -62,7 +80,10 @@ exports.getAllFees = async (req, res) => {
 exports.getFeesByStudent = async (req, res) => {
   try {
     const fees = await Fees.find({ studentId: req.params.studentId })
-      .populate("studentId", "fname mname lname registration_no email contact courseId")
+      .populate(
+        "studentId",
+        "fname mname lname registration_no email contact courseId",
+      )
       .populate("employeeId", "fname lname");
 
     if (!fees || fees.length === 0) {
@@ -89,11 +110,16 @@ exports.getFeesByStudent = async (req, res) => {
 exports.getFeesById = async (req, res) => {
   try {
     const fees = await Fees.findById(req.params.id)
-      .populate("studentId", "fname mname lname registration_no email contact courseId")
+      .populate(
+        "studentId",
+        "fname mname lname registration_no email contact courseId",
+      )
       .populate("employeeId", "fname lname");
 
     if (!fees)
-      return res.status(404).json({ success: false, message: "Fees record not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Fees record not found" });
 
     // Nested populate for course info
     await Student.populate(fees, {
@@ -117,7 +143,9 @@ exports.updateFees = async (req, res) => {
     });
 
     if (!fees)
-      return res.status(404).json({ success: false, message: "Fees record not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Fees record not found" });
 
     res.json({
       success: true,
@@ -136,7 +164,9 @@ exports.deleteFees = async (req, res) => {
     const fees = await Fees.findByIdAndDelete(req.params.id);
 
     if (!fees)
-      return res.status(404).json({ success: false, message: "Fees record not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Fees record not found" });
 
     res.json({
       success: true,
@@ -147,7 +177,6 @@ exports.deleteFees = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 /* ================= GET PAYMENT MODES ================= */
 exports.getPaymentModes = async (req, res) => {
@@ -170,7 +199,13 @@ exports.getPaymentModes = async (req, res) => {
 /* ================= PAY FEE INSTALLMENT ================= */
 exports.payFeeInstallment = async (req, res) => {
   try {
-    const { installmentAmount, modeOfPayment, transactionId, employeeId } = req.body;
+    const {
+      installmentAmount,
+      modeOfPayment,
+      transactionId,
+      employeeId,
+      nextInstallmentDate,
+    } = req.body;
 
     // Validation
     if (!installmentAmount || installmentAmount <= 0) {
@@ -188,21 +223,64 @@ exports.payFeeInstallment = async (req, res) => {
     }
 
     // Validate transaction ID for non-cash payments
-    if (modeOfPayment !== "CASH" && (!transactionId || transactionId.length < 5)) {
+    if (
+      modeOfPayment !== "CASH" &&
+      (!transactionId || transactionId.length < 5)
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Transaction ID is required for non-cash payments (min 5 characters)",
+        message:
+          "Transaction ID is required for non-cash payments (min 5 characters)",
       });
     }
 
-    // Find the fees record
-    const fees = await Fees.findById(req.params.id).populate("studentId");
+    // Find the fees record and populate student
+    const fees = await Fees.findById(req.params.id).populate({
+      path: "studentId",
+      populate: { path: "courseId", model: "Course" },
+    });
 
     if (!fees) {
       return res.status(404).json({
         success: false,
         message: "Fees record not found",
       });
+    }
+
+    // Extract student info with fallbacks
+    let studentName = "N/A";
+    let registrationNo = "N/A";
+    let studentEmail = "N/A";
+    let studentContact = "N/A";
+    let studentCourse = "N/A";
+
+    if (fees.studentId) {
+      const student = fees.studentId;
+      studentName =
+        `${student.fname || ""} ${student.mname || ""} ${student.lname || ""}`.trim() ||
+        "N/A";
+      registrationNo = student.registration_no || "N/A";
+      studentEmail = student.email || "N/A";
+      studentContact = student.contact || "N/A";
+
+      // Get course info
+      if (student.courseId && student.courseId.name) {
+        studentCourse = student.courseId.name;
+      }
+
+      console.log("✓ Student found:", studentName, registrationNo);
+    } else {
+      console.log("⚠ No studentId in fees record:", fees._id);
+      console.log("Fees data:", JSON.stringify(fees.toObject(), null, 2));
+    }
+
+    // Auto-fix missing totalAmount (use actualFees or calculate from paymentHistory)
+    if (!fees.totalAmount || fees.totalAmount <= 0) {
+      fees.totalAmount =
+        fees.actualFees || (fees.totalPaid || 0) + fees.remainingAmount;
+      if (!fees.actualFees) {
+        fees.actualFees = fees.totalAmount;
+      }
     }
 
     // Check if fees already completed
@@ -221,20 +299,33 @@ exports.payFeeInstallment = async (req, res) => {
       });
     }
 
-    // Generate auto-increment receipt number
-    const receiptNumber = await getNextReceiptNumber();
+    // Generate unique receipt number (with retry logic)
+    let receiptNumber;
+    let retryCount = 0;
 
-    // Calculate new installment number
-    const newInstallmentNo = (fees.paymentHistory?.length || 0) + 1;
+    do {
+      receiptNumber = await getNextReceiptNumber();
+      const existingReceipt = await Fees.findOne({ receiptNumber });
+      if (existingReceipt && retryCount < 10) {
+        console.log(
+          `Receipt ${receiptNumber} already exists, generating new one...`,
+        );
+        retryCount++;
+      } else {
+        break;
+      }
+    } while (retryCount < 10);
 
     // Add to payment history
     const paymentEntry = {
-      installmentNo: newInstallmentNo,
       paidAmount: installmentAmount,
       modeOfPayment,
       transactionId: modeOfPayment === "CASH" ? "CASH" : transactionId,
       receiptNumber,
-      employeeId: employeeId || 1,
+      employeeId: employeeId || null,
+      nextInstallmentDate: nextInstallmentDate
+        ? new Date(nextInstallmentDate)
+        : null,
     };
 
     // Update fees
@@ -242,7 +333,11 @@ exports.payFeeInstallment = async (req, res) => {
     fees.modeOfPayment = modeOfPayment;
     fees.transactionId = modeOfPayment === "CASH" ? "CASH" : transactionId;
     fees.receiptNumber = receiptNumber;
-    fees.installmentNo = newInstallmentNo;
+
+    // Set next installment date
+    if (nextInstallmentDate) {
+      fees.nextInstallmentDate = new Date(nextInstallmentDate);
+    }
 
     if (!fees.paymentHistory) {
       fees.paymentHistory = [];
@@ -251,29 +346,48 @@ exports.payFeeInstallment = async (req, res) => {
 
     await fees.save();
 
-    // Prepare response
+    // Prepare response with full fees details
     const response = {
       success: true,
-      message: fees.feesStatus === "COMPLETED" 
-        ? "🎉 Fees fully paid! Installment cleared." 
-        : `Installment #${newInstallmentNo} of ₹${installmentAmount} paid successfully`,
+      message:
+        fees.feesStatus === "COMPLETED"
+          ? "🎉 Fees fully paid! Installment cleared."
+          : `Installment of ₹${installmentAmount} paid successfully`,
       data: {
         feesId: fees._id,
-        studentName: fees.studentId 
-          ? `${fees.studentId.fname} ${fees.studentId.lname}` 
-          : "N/A",
-        registrationNo: fees.studentId?.registration_no || "N/A",
-        totalAmount: fees.totalAmount,
-        totalPaid: fees.totalPaid,
-        remainingAmount: fees.remainingAmount,
-        feesStatus: fees.feesStatus,
-        currentInstallmentNo: fees.installmentNo,
+        studentName: studentName,
+        registrationNo: registrationNo,
+        studentEmail: studentEmail,
+        studentContact: studentContact,
+        studentCourse: studentCourse,
+        feesDetails: {
+          totalAmount: fees.totalAmount,
+          actualFees: fees.actualFees,
+          ...(fees.discount > 0 ? { discount: fees.discount } : {}),
+          totalPaid: fees.totalPaid,
+          remainingAmount: fees.remainingAmount,
+          feesStatus: fees.feesStatus,
+          statementDate: fees.statementDate,
+          dueDate: fees.dueDate,
+          nextInstallmentDate: fees.nextInstallmentDate,
+          modeOfPayment: fees.modeOfPayment,
+          transactionId: fees.transactionId,
+          receiptNumber: fees.receiptNumber,
+        },
+        paymentHistory: fees.paymentHistory.map((entry) => ({
+          paidAmount: entry.paidAmount,
+          modeOfPayment: entry.modeOfPayment,
+          transactionId: entry.transactionId,
+          receiptNumber: entry.receiptNumber,
+          paymentDate: entry.paymentDate,
+          nextInstallmentDate: entry.nextInstallmentDate,
+        })),
         lastPayment: {
-          installmentNo: newInstallmentNo,
           amount: installmentAmount,
           modeOfPayment,
           receiptNumber,
           paymentDate: paymentEntry.paymentDate,
+          nextInstallmentDate: paymentEntry.nextInstallmentDate,
         },
       },
     };
@@ -307,7 +421,10 @@ exports.getFeesSummaryByStudent = async (req, res) => {
       totalFees: fees.reduce((sum, f) => sum + f.totalAmount, 0),
       totalPaid: fees.reduce((sum, f) => sum + f.totalPaid, 0),
       totalRemaining: fees.reduce((sum, f) => sum + f.remainingAmount, 0),
-      totalInstallments: fees.reduce((sum, f) => sum + (f.paymentHistory?.length || 0), 0),
+      totalInstallments: fees.reduce(
+        (sum, f) => sum + (f.paymentHistory?.length || 0),
+        0,
+      ),
       status: fees[0].feesStatus,
     };
 
@@ -352,8 +469,8 @@ exports.getCompletedFees = async (req, res) => {
 /* ================= GET ALL PENDING/PARTIAL FEES ================= */
 exports.getPendingFees = async (req, res) => {
   try {
-    const fees = await Fees.find({ 
-      feesStatus: { $in: ["PENDING", "PARTIAL"] } 
+    const fees = await Fees.find({
+      feesStatus: { $in: ["PENDING", "PARTIAL"] },
     })
       .populate("studentId", "fname mname lname registration_no email contact")
       .populate("employeeId", "fname lname")
@@ -391,7 +508,10 @@ exports.getFeesByRegistrationNo = async (req, res) => {
 
     // Find fees by student ID
     const fees = await Fees.find({ studentId: student._id })
-      .populate("studentId", "fname mname lname registration_no email contact courseId")
+      .populate(
+        "studentId",
+        "fname mname lname registration_no email contact courseId",
+      )
       .populate("employeeId", "fname lname")
       .sort({ createdAt: -1 });
 
@@ -413,7 +533,10 @@ exports.getFeesByRegistrationNo = async (req, res) => {
       totalFees: fees.reduce((sum, f) => sum + f.totalAmount, 0),
       totalPaid: fees.reduce((sum, f) => sum + f.totalPaid, 0),
       totalRemaining: fees.reduce((sum, f) => sum + f.remainingAmount, 0),
-      totalInstallments: fees.reduce((sum, f) => sum + (f.paymentHistory?.length || 0), 0),
+      totalInstallments: fees.reduce(
+        (sum, f) => sum + (f.paymentHistory?.length || 0),
+        0,
+      ),
       status: fees[0].feesStatus,
     };
 
@@ -449,9 +572,9 @@ exports.editFeeInstallment = async (req, res) => {
     const {
       totalPaid,
       remainingAmount,
-      installmentNo,
       statementDate,
       dueDate,
+      nextInstallmentDate,
       modeOfPayment,
       transactionId,
       receiptNumber,
@@ -478,16 +601,16 @@ exports.editFeeInstallment = async (req, res) => {
       fees.remainingAmount = remainingAmount;
     }
 
-    if (installmentNo !== undefined) {
-      fees.installmentNo = installmentNo;
-    }
-
     if (statementDate !== undefined) {
       fees.statementDate = new Date(statementDate);
     }
 
     if (dueDate !== undefined) {
       fees.dueDate = new Date(dueDate);
+    }
+
+    if (nextInstallmentDate !== undefined) {
+      fees.nextInstallmentDate = new Date(nextInstallmentDate);
     }
 
     if (modeOfPayment !== undefined) {
@@ -513,7 +636,6 @@ exports.editFeeInstallment = async (req, res) => {
     // Auto-update fees status based on remaining amount
     if (fees.remainingAmount <= 0 && fees.totalAmount > 0) {
       fees.feesStatus = "COMPLETED";
-      fees.installmentNo = 0;
     } else if (fees.totalPaid > 0) {
       fees.feesStatus = "PARTIAL";
     } else {
@@ -527,17 +649,17 @@ exports.editFeeInstallment = async (req, res) => {
       message: "Fee installment details updated successfully",
       data: {
         feesId: fees._id,
-        studentName: fees.studentId 
-          ? `${fees.studentId.fname} ${fees.studentId.lname}` 
+        studentName: fees.studentId
+          ? `${fees.studentId.fname} ${fees.studentId.lname}`
           : "N/A",
         registrationNo: fees.studentId?.registration_no || "N/A",
         totalAmount: fees.totalAmount,
         totalPaid: fees.totalPaid,
         remainingAmount: fees.remainingAmount,
         feesStatus: fees.feesStatus,
-        installmentNo: fees.installmentNo,
         statementDate: fees.statementDate,
         dueDate: fees.dueDate,
+        nextInstallmentDate: fees.nextInstallmentDate,
         modeOfPayment: fees.modeOfPayment,
         transactionId: fees.transactionId,
         receiptNumber: fees.receiptNumber,
@@ -558,12 +680,12 @@ exports.addManualInstallment = async (req, res) => {
     const { id } = req.params;
     const {
       paidAmount,
-      installmentNo,
       modeOfPayment,
       transactionId,
       receiptNumber,
       paymentDate,
       employeeId,
+      nextInstallmentDate,
     } = req.body;
 
     // Validation
@@ -585,17 +707,20 @@ exports.addManualInstallment = async (req, res) => {
     }
 
     // Generate auto-increment receipt number if not provided
-    const autoReceiptNumber = receiptNumber || await getNextReceiptNumber();
+    const autoReceiptNumber = receiptNumber || (await getNextReceiptNumber());
 
     // Create payment history entry
     const paymentEntry = {
-      installmentNo: installmentNo || (fees.paymentHistory?.length || 0) + 1,
       paidAmount,
       modeOfPayment: modeOfPayment || "CASH",
-      transactionId: modeOfPayment === "CASH" ? "CASH" : (transactionId || "MANUAL"),
+      transactionId:
+        modeOfPayment === "CASH" ? "CASH" : transactionId || "MANUAL",
       receiptNumber: autoReceiptNumber,
       paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-      employeeId: employeeId || 1,
+      employeeId: employeeId || null,
+      nextInstallmentDate: nextInstallmentDate
+        ? new Date(nextInstallmentDate)
+        : null,
     };
 
     // Add to payment history
@@ -607,8 +732,10 @@ exports.addManualInstallment = async (req, res) => {
     // Update total paid
     fees.totalPaid = (fees.totalPaid || 0) + paidAmount;
 
-    // Update current installment number
-    fees.installmentNo = paymentEntry.installmentNo;
+    // Set next installment date
+    if (nextInstallmentDate) {
+      fees.nextInstallmentDate = new Date(nextInstallmentDate);
+    }
 
     // Update mode of payment and transaction info
     fees.modeOfPayment = paymentEntry.modeOfPayment;
@@ -622,15 +749,15 @@ exports.addManualInstallment = async (req, res) => {
       message: "Manual installment entry added successfully",
       data: {
         feesId: fees._id,
-        studentName: fees.studentId 
-          ? `${fees.studentId.fname} ${fees.studentId.lname}` 
+        studentName: fees.studentId
+          ? `${fees.studentId.fname} ${fees.studentId.lname}`
           : "N/A",
         registrationNo: fees.studentId?.registration_no || "N/A",
         totalAmount: fees.totalAmount,
         totalPaid: fees.totalPaid,
         remainingAmount: fees.remainingAmount,
         feesStatus: fees.feesStatus,
-        installmentNo: fees.installmentNo,
+        nextInstallmentDate: fees.nextInstallmentDate,
         generatedReceiptNumber: autoReceiptNumber,
         newPaymentEntry: paymentEntry,
       },
@@ -648,11 +775,11 @@ exports.addManualInstallment = async (req, res) => {
 exports.getReceiptCounter = async (req, res) => {
   try {
     const { getCurrentReceiptCount } = require("../services/receipt.service");
-    
+
     const currentCount = await getCurrentReceiptCount();
-    
-    const nextReceiptNumber = `RCPT-${String(currentCount + 1).padStart(6, '0')}`;
-    
+
+    const nextReceiptNumber = `RCPT-${String(currentCount + 1).padStart(6, "0")}`;
+
     res.status(200).json({
       success: true,
       data: {
@@ -663,6 +790,112 @@ exports.getReceiptCounter = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Receipt Counter Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* ================= GENERATE RECEIPT PDF (DOWNLOADABLE) ================= */
+exports.generateReceiptPDF = async (req, res) => {
+  try {
+    const { studentDocId, modeOfPayment, transactionId, nextDueDate } =
+      req.body;
+
+    if (!studentDocId) {
+      return res.status(400).json({
+        success: false,
+        message: "Student ID is required",
+      });
+    }
+
+    const { generateReceiptPDF } = require("../services/receiptService");
+
+    const { pdfBuffer, receiptNumber } = await generateReceiptPDF({
+      studentDocId,
+      modeOfPayment: modeOfPayment || "CASH",
+      transactionId: transactionId || "N/A",
+      nextDueDate: nextDueDate || "N/A",
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="Fee_Receipt_${receiptNumber}.pdf"`,
+    );
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Generate Receipt PDF Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* ================= SEND RECEIPT EMAIL ================= */
+exports.sendReceiptEmail = async (req, res) => {
+  try {
+    const { studentDocId, modeOfPayment, transactionId, nextDueDate } =
+      req.body;
+
+    if (!studentDocId) {
+      return res.status(400).json({
+        success: false,
+        message: "Student ID is required",
+      });
+    }
+
+    const { sendReceiptEmail } = require("../services/receiptService");
+
+    await sendReceiptEmail({
+      studentDocId,
+      modeOfPayment,
+      transactionId,
+      nextDueDate,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Receipt generated and sent to student email successfully",
+    });
+  } catch (error) {
+    console.error("Send Receipt Email Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* ================= SEND RECEIPT (LEGACY SUPPORT) ================= */
+exports.sendReceipt = async (req, res) => {
+  try {
+    const { studentDocId, modeOfPayment, transactionId, nextDueDate } =
+      req.body;
+
+    if (!studentDocId) {
+      return res.status(400).json({
+        success: false,
+        message: "Student ID is required",
+      });
+    }
+
+    const { sendReceiptEmail } = require("../services/receiptService");
+
+    await sendReceiptEmail({
+      studentDocId,
+      modeOfPayment,
+      transactionId,
+      nextDueDate,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Receipt generated and sent to student email",
+    });
+  } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message,

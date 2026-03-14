@@ -1,8 +1,8 @@
-
 const Student = require("../models/student.model");
 const Fees = require("../models/fees.model");
 const sharp = require("sharp");
 const studentService = require("../services/student.service");
+const { sendRegistrationSuccessEmail } = require("../utils/email.service");
 
 /* ================= CREATE ================= */
 exports.createStudent = async (req, res, next) => {
@@ -17,13 +17,20 @@ exports.createStudent = async (req, res, next) => {
     }
 
     // Validate required fields
-    const requiredFields = ["fname", "lname", "contact", "email", "eid", "courseId"];
-    const missingFields = requiredFields.filter(field => !studentData[field]);
+    const requiredFields = [
+      "fname",
+      "lname",
+      "contact",
+      "email",
+      "eid",
+      "courseId",
+    ];
+    const missingFields = requiredFields.filter((field) => !studentData[field]);
 
     if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
-        message: `Missing required fields: ${missingFields.join(", ")}`
+        message: `Missing required fields: ${missingFields.join(", ")}`,
       });
     }
 
@@ -36,8 +43,7 @@ exports.createStudent = async (req, res, next) => {
           .toBuffer();
 
         studentData.photo =
-          `data:image/jpeg;base64,` +
-          compressedPhoto.toString("base64");
+          `data:image/jpeg;base64,` + compressedPhoto.toString("base64");
       } catch (photoError) {
         console.error("Photo processing error:", photoError.message);
       }
@@ -52,8 +58,7 @@ exports.createStudent = async (req, res, next) => {
           .toBuffer();
 
         studentData.signature =
-          `data:image/jpeg;base64,` +
-          compressedSign.toString("base64");
+          `data:image/jpeg;base64,` + compressedSign.toString("base64");
       } catch (signError) {
         console.error("Signature processing error:", signError.message);
       }
@@ -66,7 +71,7 @@ exports.createStudent = async (req, res, next) => {
     if (!savedStudent) {
       return res.status(500).json({
         success: false,
-        message: "Student creation failed - data not saved"
+        message: "Student creation failed - data not saved",
       });
     }
 
@@ -102,6 +107,31 @@ exports.createStudent = async (req, res, next) => {
       }
     }
 
+    // 📧 Send registration success email
+    try {
+      const fullName =
+        `${student.fname} ${student.mname || ""} ${student.lname}`.trim();
+      let courseName = "Not specified";
+
+      if (student.courseId) {
+        const Course = require("../models/course.model");
+        const course = await Course.findById(student.courseId);
+        if (course) {
+          courseName = course.name;
+        }
+      }
+
+      await sendRegistrationSuccessEmail(
+        student.email,
+        fullName,
+        student.registration_no,
+        courseName,
+      );
+    } catch (emailError) {
+      // Don't fail registration if email fails - just log the error
+      console.error("Failed to send registration email:", emailError.message);
+    }
+
     res.status(201).json({
       success: true,
       data: savedStudent,
@@ -131,7 +161,9 @@ exports.getStudentById = async (req, res, next) => {
   try {
     const student = await studentService.getStudentById(req.params.id);
     if (!student)
-      return res.status(404).json({ success: false, message: "Student not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
 
     res.status(200).json({ success: true, data: student });
   } catch (error) {
@@ -143,11 +175,13 @@ exports.getStudentById = async (req, res, next) => {
 exports.getStudentByRegistrationNo = async (req, res, next) => {
   try {
     const student = await studentService.getStudentByRegistrationNo(
-      req.params.registration_no
+      req.params.registration_no,
     );
 
     if (!student)
-      return res.status(404).json({ success: false, message: "Student not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
 
     res.status(200).json({ success: true, data: student });
   } catch (error) {
@@ -248,9 +282,10 @@ exports.getStudentRegistrationNumbers = async (req, res) => {
     res.status(200).json({
       success: true,
       count: students.length,
-      data: students.map(student => ({
+      data: students.map((student) => ({
         registration_no: student.registration_no,
-        fullName: `${student.fname} ${student.mname || ""} ${student.lname}`.trim(),
+        fullName:
+          `${student.fname} ${student.mname || ""} ${student.lname}`.trim(),
         contact: student.contact,
         email: student.email,
       })),
@@ -276,8 +311,7 @@ exports.updateStudent = async (req, res, next) => {
         .toBuffer();
 
       studentData.photo =
-        `data:image/jpeg;base64,` +
-        compressedPhoto.toString("base64");
+        `data:image/jpeg;base64,` + compressedPhoto.toString("base64");
     }
 
     if (req.files?.signature) {
@@ -287,18 +321,19 @@ exports.updateStudent = async (req, res, next) => {
         .toBuffer();
 
       studentData.signature =
-        `data:image/jpeg;base64,` +
-        compressedSign.toString("base64");
+        `data:image/jpeg;base64,` + compressedSign.toString("base64");
     }
 
     const student = await Student.findOneAndUpdate(
       { registration_no: req.params.registration_no },
       studentData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!student)
-      return res.status(404).json({ success: false, message: "Student not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
 
     res.status(200).json({
       success: true,
@@ -318,7 +353,9 @@ exports.deleteStudent = async (req, res, next) => {
     });
 
     if (!student)
-      return res.status(404).json({ success: false, message: "Student not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
 
     res.status(200).json({
       success: true,
@@ -336,7 +373,7 @@ exports.getStudentByEnquiryNumber = async (req, res, next) => {
 
     // First try to find student by registration_no
     let student = await Student.findOne({
-      registration_no: new RegExp(`^${enquiryNumber}$`, "i")
+      registration_no: new RegExp(`^${enquiryNumber}$`, "i"),
     })
       .populate("eid", "fname lname email designation")
       .populate("courseId", "name feesAmount duration");
@@ -344,7 +381,7 @@ exports.getStudentByEnquiryNumber = async (req, res, next) => {
     // If not found, try to find by contact number (in case enquiry number is contact)
     if (!student) {
       student = await Student.findOne({
-        contact: enquiryNumber
+        contact: enquiryNumber,
       })
         .populate("eid", "fname lname email designation")
         .populate("courseId", "name feesAmount duration");
@@ -354,16 +391,13 @@ exports.getStudentByEnquiryNumber = async (req, res, next) => {
     if (!student) {
       const Enquiry = require("../models/enquiry.model");
       const enquiry = await Enquiry.findOne({
-        enquiryNumber: new RegExp(`^${enquiryNumber}$`, "i")
+        enquiryNumber: new RegExp(`^${enquiryNumber}$`, "i"),
       });
 
       if (enquiry) {
         // Try to find student with same contact or email as enquiry
         student = await Student.findOne({
-          $or: [
-            { contact: enquiry.contact },
-            { email: enquiry.email }
-          ]
+          $or: [{ contact: enquiry.contact }, { email: enquiry.email }],
         })
           .populate("eid", "fname lname email designation")
           .populate("courseId", "name feesAmount duration");
@@ -373,13 +407,13 @@ exports.getStudentByEnquiryNumber = async (req, res, next) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: "Student not found for this enquiry number"
+        message: "Student not found for this enquiry number",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: student
+      data: student,
     });
   } catch (error) {
     next(error);
