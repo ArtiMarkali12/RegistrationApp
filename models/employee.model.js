@@ -1,53 +1,72 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-const employeeSchema = new mongoose.Schema({
-  employeeId: {
-    type: Number,
-    // default: 1,
-    unique: true
+const employeeSchema = new mongoose.Schema(
+  {
+    employeeId: {
+      type: Number,
+      // default: 1,
+      unique: true,
+    },
+    fname: {
+      type: String,
+      required: true,
+    },
+    lname: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+    },
+    mobileNo: {
+      type: String,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    designation: {
+      type: String,
+    },
+    gender: {
+      type: String,
+    },
+    qualification: {
+      type: String,
+    },
+    department: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+    },
+    superAdminId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SuperAdmin",
+    },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
   },
-  fname: {
-    type: String,
-    required: true
-  },
-  lname: {
-    type: String,
-    required: true
-  },
-  email: {
-    type: String,
-    lowercase: true,
-    trim: true
-  },
-  mobileNo: {
-    type: String,
-    trim: true
-  },
-  password: {
-    type: String,
-    required: true
-  },
-  designation: {
-    type: String
-  },
-  gender: {
-    type: String
-  },
-  qualification: {
-    type: String
-  },
-  superAdminId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "SuperAdmin"
-  },
-  isBlocked: {
-    type: Boolean,
-    default: false
-  }
-}, { timestamps: true });
+  { timestamps: true },
+);
 
-employeeSchema.pre("save", async function() {
+// Auto-increment employeeId
+employeeSchema.pre("save", async function () {
+  // Generate employeeId if not provided
+  if (!this.employeeId) {
+    const lastEmployee = await this.constructor.findOne(
+      {},
+      {},
+      { sort: { employeeId: -1 } },
+    );
+    this.employeeId = lastEmployee ? lastEmployee.employeeId + 1 : 1;
+  }
+
+  // Hash password if modified
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 10);
 });

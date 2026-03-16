@@ -1,4 +1,5 @@
 const Department = require("../models/department.model");
+const Employee = require("../models/employee.model");
 
 /* Create Department */
 exports.createDepartment = async (req, res, next) => {
@@ -72,13 +73,22 @@ exports.getDepartmentByName = async (req, res, next) => {
 exports.updateDepartment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { dept_name, location } = req.body;
+    const { dept_name, location, employeeId } = req.body;
 
-    const department = await Department.findByIdAndUpdate(
-      id,
-      { dept_name, location },
-      { new: true, runValidators: true }
-    );
+    const updateData = { dept_name, location };
+
+    // Add employee to department if employeeId is provided
+    if (employeeId) {
+      updateData.$push = { employees: employeeId };
+
+      // Also update the employee's department field
+      await Employee.findByIdAndUpdate(employeeId, { department: id });
+    }
+
+    const department = await Department.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    }).populate("employees");
 
     if (!department) {
       return res.status(404).json({
