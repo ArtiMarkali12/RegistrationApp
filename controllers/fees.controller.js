@@ -7,6 +7,15 @@ exports.createFees = async (req, res) => {
   try {
     const feesData = { ...req.body };
 
+    // Validate studentId is provided
+    if (!feesData.studentId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "studentId is required. Please provide a valid student ObjectId.",
+      });
+    }
+
     // Initialize totalPaid if not provided
     if (!feesData.totalPaid) {
       feesData.totalPaid = feesData.paidAmount || 0;
@@ -56,7 +65,9 @@ exports.createFees = async (req, res) => {
 /* ================= GET ALL FEES ================= */
 exports.getAllFees = async (req, res) => {
   try {
+    // Fetch all fees records (including those with null studentId for debugging)
     const fees = await Fees.find()
+      .select("-installmentNo")
       .populate(
         "studentId",
         "fname mname lname registration_no email contact courseId",
@@ -69,7 +80,15 @@ exports.getAllFees = async (req, res) => {
       select: "name feesAmount duration requiredQualification",
     });
 
-    res.json({ success: true, data: fees });
+    // Add computed fields for convenience
+    const feesWithComputedFields = fees.map((fee) => {
+      const feeObj = fee.toObject();
+      feeObj.totalAmount = fee.totalAmount || fee.actualFees || 0;
+      feeObj.totalPaid = fee.totalPaid || 0;
+      return feeObj;
+    });
+
+    res.json({ success: true, data: feesWithComputedFields });
   } catch (error) {
     console.error("Get All Fees Error:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -80,6 +99,7 @@ exports.getAllFees = async (req, res) => {
 exports.getFeesByStudent = async (req, res) => {
   try {
     const fees = await Fees.find({ studentId: req.params.studentId })
+      .select("-installmentNo")
       .populate(
         "studentId",
         "fname mname lname registration_no email contact courseId",
@@ -99,7 +119,15 @@ exports.getFeesByStudent = async (req, res) => {
       select: "name feesAmount duration requiredQualification",
     });
 
-    res.json({ success: true, data: fees });
+    // Add computed fields
+    const feesWithComputedFields = fees.map((fee) => {
+      const feeObj = fee.toObject();
+      feeObj.totalAmount = fee.totalAmount || fee.actualFees || 0;
+      feeObj.totalPaid = fee.totalPaid || 0;
+      return feeObj;
+    });
+
+    res.json({ success: true, data: feesWithComputedFields });
   } catch (error) {
     console.error("Get Fees By Student Error:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -110,6 +138,7 @@ exports.getFeesByStudent = async (req, res) => {
 exports.getFeesById = async (req, res) => {
   try {
     const fees = await Fees.findById(req.params.id)
+      .select("-installmentNo")
       .populate(
         "studentId",
         "fname mname lname registration_no email contact courseId",
@@ -127,7 +156,12 @@ exports.getFeesById = async (req, res) => {
       select: "name feesAmount duration requiredQualification",
     });
 
-    res.json({ success: true, data: fees });
+    // Add computed fields
+    const feeObj = fees.toObject();
+    feeObj.totalAmount = fees.totalAmount || fees.actualFees || 0;
+    feeObj.totalPaid = fees.totalPaid || 0;
+
+    res.json({ success: true, data: feeObj });
   } catch (error) {
     console.error("Get Fees By ID Error:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -406,6 +440,7 @@ exports.payFeeInstallment = async (req, res) => {
 exports.getFeesSummaryByStudent = async (req, res) => {
   try {
     const fees = await Fees.find({ studentId: req.params.studentId })
+      .select("-installmentNo")
       .populate("studentId", "fname mname lname registration_no email contact")
       .sort({ createdAt: -1 });
 
@@ -448,6 +483,7 @@ exports.getFeesSummaryByStudent = async (req, res) => {
 exports.getCompletedFees = async (req, res) => {
   try {
     const fees = await Fees.find({ feesStatus: "COMPLETED" })
+      .select("-installmentNo")
       .populate("studentId", "fname mname lname registration_no email contact")
       .populate("employeeId", "fname lname")
       .sort({ updatedAt: -1 });
@@ -472,6 +508,7 @@ exports.getPendingFees = async (req, res) => {
     const fees = await Fees.find({
       feesStatus: { $in: ["PENDING", "PARTIAL"] },
     })
+      .select("-installmentNo")
       .populate("studentId", "fname mname lname registration_no email contact")
       .populate("employeeId", "fname lname")
       .sort({ remainingAmount: 1 });
@@ -508,6 +545,7 @@ exports.getFeesByRegistrationNo = async (req, res) => {
 
     // Find fees by student ID
     const fees = await Fees.find({ studentId: student._id })
+      .select("-installmentNo")
       .populate(
         "studentId",
         "fname mname lname registration_no email contact courseId",
