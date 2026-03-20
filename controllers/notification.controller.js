@@ -8,7 +8,7 @@ const getFeeDueNotifications = async (req, res, next) => {
     if (!employeeId) {
       return res.status(400).json({
         success: false,
-        message: "Employee ID is required"
+        message: "Employee ID is  the required"
       });
     }
 
