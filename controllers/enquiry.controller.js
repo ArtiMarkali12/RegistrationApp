@@ -1,4 +1,3 @@
-
 const enquiryService = require("../services/enquiry.service");
 
 const createEnquiry = async (req, res) => {
@@ -152,6 +151,34 @@ const deleteEnquiry = async (req, res) => {
   }
 };
 
+const getPendingEnquiriesBySuperAdmin = async (req, res) => {
+  try {
+    const { superAdminId } = req.params;
+
+    if (!superAdminId) {
+      return res.status(400).json({
+        success: false,
+        message: "SuperAdmin ID is required",
+      });
+    }
+
+    const enquiries =
+      await enquiryService.getPendingEnquiriesBySuperAdmin(superAdminId);
+
+    res.status(200).json({
+      success: true,
+      count: enquiries.length,
+      data: enquiries,
+    });
+  } catch (error) {
+    console.error("Get Pending Enquiries By SuperAdmin Error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: error.message || "Failed to fetch pending enquiries",
+    });
+  }
+};
+
 module.exports = {
   createEnquiry,
   getAllEnquiries,
@@ -159,4 +186,5 @@ module.exports = {
   getEnquiryById,
   updateEnquiry,
   deleteEnquiry,
+  getPendingEnquiriesBySuperAdmin,
 };

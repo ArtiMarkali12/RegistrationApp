@@ -41,6 +41,8 @@ exports.login = async (req, res, next) => {
         designation: employee.designation,
         accessRights: employee.accessRights || [],
         isBlocked: employee.isBlocked || false,
+        department: employee.department || null,
+        superAdminId: employee.superAdminId || null,
       },
     });
   } catch (error) {

@@ -12,7 +12,7 @@ const createEmployee = async (req, res) => {
       if (!superAdmin) {
         return res.status(404).json({
           success: false,
-          message: "Super Admin not found"
+          message: "Super Admin not found",
         });
       }
 
@@ -20,13 +20,13 @@ const createEmployee = async (req, res) => {
 
       // Add employee to SuperAdmin's employees list
       await SuperAdmin.findByIdAndUpdate(superAdminId, {
-        $push: { employees: emp._id }
+        $push: { employees: emp._id },
       });
 
       return res.status(201).json({
         success: true,
         message: "Employee created successfully",
-        data: emp
+        data: emp,
       });
     } else {
       // Create employee without linking to SuperAdmin (backward compatibility)
@@ -34,13 +34,13 @@ const createEmployee = async (req, res) => {
       return res.status(201).json({
         success: true,
         message: "Employee created successfully",
-        data: emp
+        data: emp,
       });
     }
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -50,12 +50,12 @@ const getAllEmployees = async (req, res) => {
     const emp = await Employee.find();
     return res.json({
       success: true,
-      data: emp
+      data: emp,
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -70,18 +70,18 @@ const getEmployeeById = async (req, res) => {
     if (!employee) {
       return res.status(404).json({
         success: false,
-        message: "Employee not found"
+        message: "Employee not found",
       });
     }
 
     return res.json({
       success: true,
-      data: employee
+      data: employee,
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -95,21 +95,21 @@ const updateEmployeePassword = async (req, res) => {
     if (!oldPassword || !newPassword || !confirmPassword) {
       return res.status(400).json({
         success: false,
-        message: "Old password, new password and confirm password are required"
+        message: "Old password, new password and confirm password are required",
       });
     }
 
     if (newPassword !== confirmPassword) {
       return res.status(400).json({
         success: false,
-        message: "New password and confirm password do not match"
+        message: "New password and confirm password do not match",
       });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 6 characters long"
+        message: "Password must be at least 6 characters long",
       });
     }
 
@@ -118,7 +118,7 @@ const updateEmployeePassword = async (req, res) => {
     if (!employee) {
       return res.status(404).json({
         success: false,
-        message: "Employee not found"
+        message: "Employee not found",
       });
     }
 
@@ -127,7 +127,7 @@ const updateEmployeePassword = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Old password is incorrect"
+        message: "Old password is incorrect",
       });
     }
 
@@ -137,12 +137,12 @@ const updateEmployeePassword = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Password updated successfully"
+      message: "Password updated successfully",
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -157,18 +157,25 @@ const deleteEmployee = async (req, res) => {
     if (!deletedEmployee) {
       return res.status(404).json({
         success: false,
-        message: "Employee not found"
+        message: "Employee not found",
+      });
+    }
+
+    // Remove employee from SuperAdmin's employees array
+    if (deletedEmployee.superAdminId) {
+      await SuperAdmin.findByIdAndUpdate(deletedEmployee.superAdminId, {
+        $pull: { employees: employeeId },
       });
     }
 
     return res.json({
       success: true,
-      message: "Employee deleted successfully"
+      message: "Employee deleted successfully",
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -183,7 +190,7 @@ const blockEmployee = async (req, res) => {
     if (!employee) {
       return res.status(404).json({
         success: false,
-        message: "Employee not found"
+        message: "Employee not found",
       });
     }
 
@@ -193,12 +200,12 @@ const blockEmployee = async (req, res) => {
     return res.json({
       success: true,
       message: "Employee blocked successfully",
-      data: employee
+      data: employee,
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -211,12 +218,12 @@ const getBlockedEmployees = async (req, res) => {
     return res.json({
       success: true,
       count: blockedEmployees.length,
-      data: blockedEmployees
+      data: blockedEmployees,
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -231,7 +238,7 @@ const unblockEmployee = async (req, res) => {
     if (!employee) {
       return res.status(404).json({
         success: false,
-        message: "Employee not found"
+        message: "Employee not found",
       });
     }
 
@@ -241,12 +248,12 @@ const unblockEmployee = async (req, res) => {
     return res.json({
       success: true,
       message: "Employee unblocked successfully",
-      data: employee
+      data: employee,
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -259,12 +266,12 @@ const getUnblockedEmployees = async (req, res) => {
     return res.json({
       success: true,
       count: unblockedEmployees.length,
-      data: unblockedEmployees
+      data: unblockedEmployees,
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -277,7 +284,7 @@ const searchEmployees = async (req, res) => {
     if (!query || query.trim() === "") {
       return res.status(400).json({
         success: false,
-        message: "Please provide a search query"
+        message: "Please provide a search query",
       });
     }
 
@@ -285,8 +292,8 @@ const searchEmployees = async (req, res) => {
       $or: [
         { fname: new RegExp(query, "i") },
         { lname: new RegExp(query, "i") },
-        { email: new RegExp(query, "i") }
-      ]
+        { email: new RegExp(query, "i") },
+      ],
     })
       .populate("superAdminId", "fname lname email")
       .sort({ fname: 1 });
@@ -294,19 +301,19 @@ const searchEmployees = async (req, res) => {
     if (employees.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `No employees found matching "${query}"`
+        message: `No employees found matching "${query}"`,
       });
     }
 
     return res.json({
       success: true,
       count: employees.length,
-      data: employees
+      data: employees,
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -321,5 +328,5 @@ module.exports = {
   getBlockedEmployees,
   unblockEmployee,
   getUnblockedEmployees,
-  searchEmployees
+  searchEmployees,
 };

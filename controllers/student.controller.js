@@ -1,5 +1,6 @@
 const Student = require("../models/student.model");
 const Fees = require("../models/fees.model");
+const SuperAdmin = require("../models/superAdmin.model");
 const sharp = require("sharp");
 const studentService = require("../services/student.service");
 const { sendRegistrationSuccessEmail } = require("../utils/email.service");
@@ -104,6 +105,28 @@ exports.createStudent = async (req, res, next) => {
         }
       } catch (feeError) {
         // Don't fail student registration if fees creation fails
+      }
+    }
+
+    // ➕ Add student to SuperAdmin's students array (through employee's superAdminId)
+    if (student.eid) {
+      try {
+        const Employee = require("../models/employee.model");
+        const employee = await Employee.findById(student.eid).populate(
+          "superAdminId",
+        );
+
+        if (employee && employee.superAdminId) {
+          await SuperAdmin.findByIdAndUpdate(employee.superAdminId._id, {
+            $addToSet: { students: student._id },
+          });
+        }
+      } catch (superAdminError) {
+        // Don't fail student creation if superAdmin update fails
+        console.error(
+          "Failed to add student to SuperAdmin:",
+          superAdminError.message,
+        );
       }
     }
 
@@ -356,6 +379,13 @@ exports.deleteStudent = async (req, res, next) => {
       return res
         .status(404)
         .json({ success: false, message: "Student not found" });
+
+    // Remove student from SuperAdmin's students array (if linked)
+    // Find SuperAdmins that have this student in their array and remove it
+    await SuperAdmin.updateMany(
+      { students: student._id },
+      { $pull: { students: student._id } },
+    );
 
     res.status(200).json({
       success: true,

@@ -1,4 +1,3 @@
-
 const Enquiry = require("../models/enquiry.model");
 const mongoose = require("mongoose");
 
@@ -38,9 +37,7 @@ const createEnquiry = async (data) => {
       enquiryNumber: generateEnquiryNumber(),
 
       // Validate ObjectIds safely
-      eid: mongoose.Types.ObjectId.isValid(data.eid)
-        ? data.eid
-        : null,
+      eid: mongoose.Types.ObjectId.isValid(data.eid) ? data.eid : null,
 
       courseName: mongoose.Types.ObjectId.isValid(data.courseName)
         ? data.courseName
@@ -74,11 +71,7 @@ const getEnquiryByName = async (name) => {
   const regex = new RegExp(name, "i");
 
   return await Enquiry.find({
-    $or: [
-      { fname: regex },
-      { lname: regex },
-      { mname: regex }
-    ]
+    $or: [{ fname: regex }, { lname: regex }, { mname: regex }],
   })
     .populate("eid", "fname lname email")
     .populate("courseName", "name feesAmount duration")
@@ -153,7 +146,7 @@ const updateEnquiry = async (id, data) => {
 
     return await Enquiry.findByIdAndUpdate(id, updateData, {
       new: true,
-      runValidators: true
+      runValidators: true,
     })
       .populate("eid", "fname lname email")
       .populate("courseName", "name feesAmount duration");
@@ -173,6 +166,46 @@ const deleteEnquiry = async (id) => {
   }
 };
 
+/* ================= GET PENDING ENQUIRIES BY SUPERADMIN ID ================= */
+const getPendingEnquiriesBySuperAdmin = async (superAdminId) => {
+  try {
+    const SuperAdmin = require("../models/superAdmin.model");
+    const Employee = require("../models/employee.model");
+
+    // Step 1: Get superAdmin and their employees
+    const superAdmin =
+      await SuperAdmin.findById(superAdminId).populate("employees");
+
+    if (!superAdmin) {
+      throw new Error("SuperAdmin not found");
+    }
+
+    // Step 2: Get employee IDs
+    const employeeIds = superAdmin.employees.map((emp) => emp._id);
+
+    if (employeeIds.length === 0) {
+      return []; // No employees = no enquiries
+    }
+
+    // Step 3: Get pending enquiries for these employees
+    const enquiries = await Enquiry.find({
+      eid: { $in: employeeIds },
+      status: "Pending",
+    })
+      .populate("eid", "fname lname email")
+      .populate("courseName", "name feesAmount duration")
+      .sort({ createdAt: -1 });
+
+    return enquiries;
+  } catch (error) {
+    console.error(
+      "❌ Service Get Pending Enquiries By SuperAdmin Error:",
+      error.message,
+    );
+    throw error;
+  }
+};
+
 module.exports = {
   createEnquiry,
   getAllEnquiries,
@@ -180,4 +213,5 @@ module.exports = {
   getEnquiryById,
   updateEnquiry,
   deleteEnquiry,
+  getPendingEnquiriesBySuperAdmin,
 };

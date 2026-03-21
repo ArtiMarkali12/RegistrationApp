@@ -6,29 +6,23 @@ const createSuperAdmin = async (req, res, next) => {
   try {
     const { name, email, mobileNo, password } = req.body;
     if (!name || !email || !mobileNo || !password) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Name, email, mobile number and password are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, mobile number and password are required",
+      });
     }
     const existing = await SuperAdmin.findOne({ email });
     if (existing)
-      return res
-        .status(409)
-        .json({
-          success: false,
-          message: "Super Admin already exists with this email",
-        });
+      return res.status(409).json({
+        success: false,
+        message: "Super Admin already exists with this email",
+      });
     const existingMobile = await SuperAdmin.findOne({ mobileNo });
     if (existingMobile)
-      return res
-        .status(409)
-        .json({
-          success: false,
-          message: "Super Admin already exists with this mobile",
-        });
+      return res.status(409).json({
+        success: false,
+        message: "Super Admin already exists with this mobile",
+      });
     const hashedPassword = await bcrypt.hash(password, 10);
     const superAdmin = await SuperAdmin.create({
       name,
@@ -36,19 +30,17 @@ const createSuperAdmin = async (req, res, next) => {
       mobileNo,
       password: hashedPassword,
     });
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Super Admin created successfully",
-        data: {
-          _id: superAdmin._id,
-          name: superAdmin.name,
-          email: superAdmin.email,
-          mobileNo: superAdmin.mobileNo,
-          isActive: superAdmin.isActive,
-        },
-      });
+    res.status(201).json({
+      success: true,
+      message: "Super Admin created successfully",
+      data: {
+        _id: superAdmin._id,
+        name: superAdmin.name,
+        email: superAdmin.email,
+        mobileNo: superAdmin.mobileNo,
+        isActive: superAdmin.isActive,
+      },
+    });
   } catch (err) {
     next(err);
   }
@@ -88,12 +80,10 @@ const superAdminLogin = async (req, res, next) => {
   try {
     const { email, mobileNo, password } = req.body;
     if ((!email && !mobileNo) || !password)
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Email/Mobile and Password required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Email/Mobile and Password required",
+      });
     const superAdmin = await SuperAdmin.findOne({
       $or: [{ email }, { mobileNo }],
     });
@@ -110,20 +100,36 @@ const superAdminLogin = async (req, res, next) => {
       return res
         .status(401)
         .json({ success: false, message: "Invalid Password" });
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Login Successful",
-        data: {
-          _id: superAdmin._id,
-          name: superAdmin.name,
-          email: superAdmin.email,
-          mobileNo: superAdmin.mobileNo,
-          employeesCount: superAdmin.employees.length,
-          studentsCount: superAdmin.students.length,
-        },
-      });
+
+    // Get notification count
+    const Enquiry = require("../models/enquiry.model");
+    const Fees = require("../models/fees.model");
+
+    const pendingEnquiryCount = await Enquiry.countDocuments({
+      status: { $in: ["Pending", "In Progress"] },
+    });
+
+    const pendingFeesCount = await Fees.countDocuments({
+      feesStatus: { $in: ["PENDING", "PARTIAL"] },
+    });
+
+    const notificationCount = pendingEnquiryCount + pendingFeesCount;
+
+    res.status(200).json({
+      success: true,
+      message: "Login Successful",
+      data: {
+        _id: superAdmin._id,
+        name: superAdmin.name,
+        email: superAdmin.email,
+        mobileNo: superAdmin.mobileNo,
+        employeesCount: superAdmin.employees.length,
+        studentsCount: superAdmin.students.length,
+        notificationCount,
+        pendingEnquiryCount,
+        pendingFeesCount,
+      },
+    });
   } catch (err) {
     next(err);
   }
@@ -371,6 +377,84 @@ const getStudentsUnderSuperAdmin = async (req, res, next) => {
   }
 };
 
+// 📊 Get Dashboard Counts (Employee & Student Count)
+const getDashboardCounts = async (req, res, next) => {
+  try {
+    const { superAdminId } = req.params;
+
+    const superAdmin = await SuperAdmin.findById(superAdminId);
+
+    if (!superAdmin) {
+      return res.status(404).json({
+        success: false,
+        message: "Super Admin not found",
+      });
+    }
+
+    // Get actual counts from employees and students arrays
+    const employeeCount = superAdmin.employees.length;
+    const studentCount = superAdmin.students.length;
+
+    // Get notification count (pending enquiries + pending fees)
+    const Enquiry = require("../models/enquiry.model");
+    const Fees = require("../models/fees.model");
+
+    const pendingEnquiryCount = await Enquiry.countDocuments({
+      status: { $in: ["Pending", "In Progress"] },
+    });
+
+    const pendingFeesCount = await Fees.countDocuments({
+      feesStatus: { $in: ["PENDING", "PARTIAL"] },
+    });
+
+    const notificationCount = pendingEnquiryCount + pendingFeesCount;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        employeeCount,
+        studentCount,
+        notificationCount,
+        pendingEnquiryCount,
+        pendingFeesCount,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 🔔 Get Notification Count for SuperAdmin
+const getNotificationCount = async (req, res, next) => {
+  try {
+    const { superAdminId } = req.params;
+
+    const Enquiry = require("../models/enquiry.model");
+    const Fees = require("../models/fees.model");
+
+    const pendingEnquiryCount = await Enquiry.countDocuments({
+      status: { $in: ["Pending", "In Progress"] },
+    });
+
+    const pendingFeesCount = await Fees.countDocuments({
+      feesStatus: { $in: ["PENDING", "PARTIAL"] },
+    });
+
+    const notificationCount = pendingEnquiryCount + pendingFeesCount;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        notificationCount,
+        pendingEnquiryCount,
+        pendingFeesCount,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createSuperAdmin,
   getAllSuperAdmins,
@@ -381,4 +465,6 @@ module.exports = {
   updatePassword,
   getEmployeesUnderSuperAdmin,
   getStudentsUnderSuperAdmin,
+  getDashboardCounts,
+  getNotificationCount,
 };
