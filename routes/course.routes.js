@@ -20,6 +20,9 @@ router.get("/search/:identifier", courseController.getCourseByNameOrId);
 // Update course by ID
 router.put("/:id", courseController.updateCourse);
 
+// Update course fees amount (PATCH)
+router.patch("/:id/fees", courseController.updateCourseFeesAmount);
+
 // Delete course by ID
 router.delete("/:id", courseController.deleteCourse);
 

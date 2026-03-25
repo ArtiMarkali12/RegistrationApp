@@ -19,4 +19,7 @@ router.put("/mark-all-as-read", controller.markAllNotificationsAsRead);
 // Get unread notification count
 router.get("/unread-count", controller.getUnreadNotificationCount);
 
+// Debug endpoint
+router.get("/debug", controller.debugNotifications);
+
 module.exports = router;

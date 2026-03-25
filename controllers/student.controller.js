@@ -35,6 +35,17 @@ exports.createStudent = async (req, res, next) => {
       });
     }
 
+    // 🔹 If superAdminId is provided, validate it exists
+    if (studentData.superAdminId) {
+      const superAdmin = await SuperAdmin.findById(studentData.superAdminId);
+      if (!superAdmin) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid superAdminId - SuperAdmin not found",
+        });
+      }
+    }
+
     // PHOTO
     if (req.files?.photo) {
       try {
@@ -108,8 +119,21 @@ exports.createStudent = async (req, res, next) => {
       }
     }
 
-    // ➕ Add student to SuperAdmin's students array (through employee's superAdminId)
-    if (student.eid) {
+    // ➕ Add student to SuperAdmin's students array
+    if (studentData.superAdminId) {
+      // If superAdminId is directly provided in request
+      try {
+        await SuperAdmin.findByIdAndUpdate(studentData.superAdminId, {
+          $addToSet: { students: student._id },
+        });
+      } catch (superAdminError) {
+        console.error(
+          "Failed to add student to SuperAdmin:",
+          superAdminError.message,
+        );
+      }
+    } else if (student.eid) {
+      // If superAdminId not provided, try to get it from employee
       try {
         const Employee = require("../models/employee.model");
         const employee = await Employee.findById(student.eid).populate(
@@ -153,6 +177,13 @@ exports.createStudent = async (req, res, next) => {
     } catch (emailError) {
       // Don't fail registration if email fails - just log the error
       console.error("Failed to send registration email:", emailError.message);
+    }
+
+    // 💾 Save superAdminId to student record if provided
+    if (studentData.superAdminId) {
+      await Student.findByIdAndUpdate(student._id, {
+        superAdminId: studentData.superAdminId,
+      });
     }
 
     res.status(201).json({

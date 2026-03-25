@@ -168,6 +168,14 @@ const deleteEmployee = async (req, res) => {
       });
     }
 
+    // Remove employee from Department's employees array (if department exists)
+    if (deletedEmployee.department) {
+      const Department = require("../models/department.model");
+      await Department.findByIdAndUpdate(deletedEmployee.department, {
+        $pull: { employees: employeeId },
+      });
+    }
+
     return res.json({
       success: true,
       message: "Employee deleted successfully",
@@ -318,6 +326,103 @@ const searchEmployees = async (req, res) => {
   }
 };
 
+// 🔢 Check Employee Count (Debug/Verification)
+const checkEmployeeCount = async (req, res) => {
+  try {
+    const SuperAdmin = require("../models/superAdmin.model");
+    const Department = require("../models/department.model");
+
+    // Get total employees
+    const totalEmployees = await Employee.countDocuments();
+
+    // Get all super admins with their employee counts
+    const superAdmins = await SuperAdmin.find().select("name email employees");
+    const superAdminCounts = superAdmins.map((sa) => ({
+      superAdminId: sa._id,
+      name: sa.name,
+      email: sa.email,
+      employeeCount: sa.employees?.length || 0,
+      employees: sa.employees || [],
+    }));
+
+    // Get all departments with their employee counts
+    const departments = await Department.find().select("dept_name employees");
+    const departmentCounts = departments.map((dept) => ({
+      departmentId: dept._id,
+      deptName: dept.dept_name,
+      location: dept.location,
+      employeeCount: dept.employees?.length || 0,
+      employees: dept.employees || [],
+    }));
+
+    // Calculate total employees linked to super admins
+    const totalInSuperAdmins = superAdmins.reduce(
+      (sum, sa) => sum + (sa.employees?.length || 0),
+      0,
+    );
+
+    // Calculate total employees linked to departments
+    const totalInDepartments = departments.reduce(
+      (sum, dept) => sum + (dept.employees?.length || 0),
+      0,
+    );
+
+    // Find orphaned employees (not linked to any super admin)
+    const allSuperAdminEmployeeIds = new Set(
+      superAdmins.flatMap((sa) => sa.employees || []),
+    );
+    const allDepartmentEmployeeIds = new Set(
+      departments.flatMap((dept) => dept.employees || []),
+    );
+
+    const allEmployees = await Employee.find().select(
+      "_id fname lname email employeeId",
+    );
+    const orphanedEmployees = allEmployees.filter(
+      (emp) => !allSuperAdminEmployeeIds.has(emp._id.toString()),
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        totalEmployees,
+        superAdmins: {
+          count: superAdminCounts.length,
+          totalLinkedEmployees: totalInSuperAdmins,
+          details: superAdminCounts,
+        },
+        departments: {
+          count: departmentCounts.length,
+          totalLinkedEmployees: totalInDepartments,
+          details: departmentCounts,
+        },
+        orphanedEmployees: {
+          count: orphanedEmployees.length,
+          employees: orphanedEmployees.map((e) => ({
+            _id: e._id,
+            employeeId: e.employeeId,
+            name: `${e.fname} ${e.lname}`,
+            email: e.email,
+          })),
+        },
+        consistency: {
+          superAdminMatch: totalInSuperAdmins === totalEmployees,
+          departmentMatch: totalInDepartments === totalEmployees,
+          message:
+            totalInSuperAdmins === totalEmployees
+              ? "✅ Employee count matches SuperAdmin"
+              : `⚠️ Mismatch: ${totalEmployees} total, ${totalInSuperAdmins} in SuperAdmins`,
+        },
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
 module.exports = {
   createEmployee,
   getAllEmployees,
@@ -329,4 +434,5 @@ module.exports = {
   unblockEmployee,
   getUnblockedEmployees,
   searchEmployees,
+  checkEmployeeCount,
 };

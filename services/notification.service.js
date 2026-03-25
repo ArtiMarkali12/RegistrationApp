@@ -29,16 +29,18 @@ exports.getFeeDueNotifications = async (employeeId, daysThreshold = 7) => {
       employeeId: employeeIdNum,
       nextInstallmentDate: {
         $gte: today,
-        $lte: thresholdDate
+        $lte: thresholdDate,
       },
-      feesStatus: { $in: ["PENDING", "PARTIAL"] }
+      feesStatus: { $in: ["PENDING", "PARTIAL"] },
     })
-    .populate("studentId", "fname lname email contact")
-    .sort({ nextInstallmentDate: 1 });
+      .populate("studentId", "fname lname email contact")
+      .sort({ nextInstallmentDate: 1 });
 
     // Format notifications
-    const notifications = upcomingFees.map(fee => {
-      const daysRemaining = Math.ceil((fee.nextInstallmentDate - today) / (1000 * 60 * 60 * 24));
+    const notifications = upcomingFees.map((fee) => {
+      const daysRemaining = Math.ceil(
+        (fee.nextInstallmentDate - today) / (1000 * 60 * 60 * 24),
+      );
       const student = fee.studentId;
 
       let urgencyLevel = "normal";
@@ -60,14 +62,14 @@ exports.getFeeDueNotifications = async (employeeId, daysThreshold = 7) => {
         nextInstallmentDate: fee.nextInstallmentDate,
         daysRemaining: daysRemaining,
         urgencyLevel: urgencyLevel,
-        createdAt: fee.createdAt
+        createdAt: fee.createdAt,
       };
     });
 
     return {
       success: true,
       count: notifications.length,
-      data: notifications
+      data: notifications,
     };
   } catch (error) {
     throw error;
@@ -90,13 +92,13 @@ exports.getAllFeeNotifications = async (employeeId) => {
     // Find all pending/partial fees for this employee
     const allFees = await Fees.find({
       employeeId: employeeIdNum,
-      feesStatus: { $in: ["PENDING", "PARTIAL"] }
+      feesStatus: { $in: ["PENDING", "PARTIAL"] },
     })
-    .populate("studentId", "fname lname email contact")
-    .sort({ nextInstallmentDate: 1 });
+      .populate("studentId", "fname lname email contact")
+      .sort({ nextInstallmentDate: 1 });
 
-    const notifications = allFees.map(fee => {
-      const daysRemaining = fee.nextInstallmentDate 
+    const notifications = allFees.map((fee) => {
+      const daysRemaining = fee.nextInstallmentDate
         ? Math.ceil((fee.nextInstallmentDate - today) / (1000 * 60 * 60 * 24))
         : null;
       const student = fee.studentId;
@@ -117,11 +119,12 @@ exports.getAllFeeNotifications = async (employeeId) => {
         _id: fee._id,
         type: "FEE_DUE",
         title: `${status === "overdue" ? "OVERDUE" : "Fee Due"} - ${student?.fname || "Student"}`,
-        message: status === "overdue"
-          ? `Next fee installment for ${student?.fname || "Student"} is overdue by ${Math.abs(daysRemaining)} day(s)`
-          : daysRemaining !== null
-            ? `Next fee installment for ${student?.fname || "Student"} ${student?.lname || ""} is due in ${daysRemaining} day(s)`
-            : `Next fee installment date not set for ${student?.fname || "Student"}`,
+        message:
+          status === "overdue"
+            ? `Next fee installment for ${student?.fname || "Student"} is overdue by ${Math.abs(daysRemaining)} day(s)`
+            : daysRemaining !== null
+              ? `Next fee installment for ${student?.fname || "Student"} ${student?.lname || ""} is due in ${daysRemaining} day(s)`
+              : `Next fee installment date not set for ${student?.fname || "Student"}`,
         studentName: `${student?.fname || ""} ${student?.lname || ""}`.trim(),
         studentEmail: student?.email,
         studentContact: student?.contact,
@@ -130,14 +133,14 @@ exports.getAllFeeNotifications = async (employeeId) => {
         daysRemaining: daysRemaining,
         status: status,
         urgencyLevel: urgencyLevel,
-        createdAt: fee.createdAt
+        createdAt: fee.createdAt,
       };
     });
 
     return {
       success: true,
       count: notifications.length,
-      data: notifications
+      data: notifications,
     };
   } catch (error) {
     throw error;
@@ -163,17 +166,19 @@ exports.getStudentRegistrationReminders = async (employeeId) => {
     // Find enquiries with expected registration date today or in the past (pending)
     const enquiries = await Enquiry.find({
       expectedRegistrationDate: {
-        $lte: tomorrow
+        $lte: tomorrow,
       },
-      status: { $in: ["Pending", "In Progress"] }
+      status: { $in: ["Pending", "In Progress"] },
     })
-    .populate("eid", "fname lname email")
-    .sort({ expectedRegistrationDate: 1 });
+      .populate("eid", "fname lname email")
+      .sort({ expectedRegistrationDate: 1 });
 
     // Format notifications
-    const notifications = enquiries.map(enquiry => {
+    const notifications = enquiries.map((enquiry) => {
       const daysRemaining = enquiry.expectedRegistrationDate
-        ? Math.ceil((enquiry.expectedRegistrationDate - today) / (1000 * 60 * 60 * 24))
+        ? Math.ceil(
+            (enquiry.expectedRegistrationDate - today) / (1000 * 60 * 60 * 24),
+          )
         : null;
 
       let status = "upcoming";
@@ -194,11 +199,12 @@ exports.getStudentRegistrationReminders = async (employeeId) => {
         _id: enquiry._id,
         type: "STUDENT_REGISTRATION",
         title: `Student Registration - ${enquiry.fname || "Student"}`,
-        message: status === "today"
-          ? `${enquiry.fname || "Student"} ${enquiry.lname || ""} is expected to register TODAY`
-          : status === "overdue"
-            ? `${enquiry.fname || "Student"} ${enquiry.lname || ""} registration pending (expected ${Math.abs(daysRemaining)} day(s) ago)`
-            : `${enquiry.fname || "Student"} ${enquiry.lname || ""} expected to register in ${daysRemaining} day(s)`,
+        message:
+          status === "today"
+            ? `${enquiry.fname || "Student"} ${enquiry.lname || ""} is expected to register TODAY`
+            : status === "overdue"
+              ? `${enquiry.fname || "Student"} ${enquiry.lname || ""} registration pending (expected ${Math.abs(daysRemaining)} day(s) ago)`
+              : `${enquiry.fname || "Student"} ${enquiry.lname || ""} expected to register in ${daysRemaining} day(s)`,
         studentName: `${enquiry.fname || ""} ${enquiry.lname || ""}`.trim(),
         studentEmail: enquiry.email,
         studentContact: enquiry.contact,
@@ -208,14 +214,14 @@ exports.getStudentRegistrationReminders = async (employeeId) => {
         status: status,
         urgencyLevel: urgencyLevel,
         course: enquiry.requiredCourse,
-        createdAt: enquiry.createdAt
+        createdAt: enquiry.createdAt,
       };
     });
 
     return {
       success: true,
       count: notifications.length,
-      data: notifications
+      data: notifications,
     };
   } catch (error) {
     throw error;
@@ -236,16 +242,24 @@ exports.getAllNotifications = async (employeeId) => {
     const employeeIdNum = employee.employeeId;
     const today = new Date();
 
+    console.log("🔍 Notification Debug:", {
+      employeeId,
+      employeeIdNum,
+      today,
+    });
+
     // Get fee notifications
     const allFees = await Fees.find({
       employeeId: employeeIdNum,
-      feesStatus: { $in: ["PENDING", "PARTIAL"] }
+      feesStatus: { $in: ["PENDING", "PARTIAL"] },
     })
-    .populate("studentId", "fname lname email contact")
-    .sort({ nextInstallmentDate: 1 });
+      .populate("studentId", "fname lname email contact")
+      .sort({ nextInstallmentDate: 1 });
 
-    const feeNotifications = allFees.map(fee => {
-      const daysRemaining = fee.nextInstallmentDate 
+    console.log("💰 Fees found:", allFees.length);
+
+    const feeNotifications = allFees.map((fee) => {
+      const daysRemaining = fee.nextInstallmentDate
         ? Math.ceil((fee.nextInstallmentDate - today) / (1000 * 60 * 60 * 24))
         : null;
       const student = fee.studentId;
@@ -266,11 +280,12 @@ exports.getAllNotifications = async (employeeId) => {
         _id: fee._id,
         type: "FEE_REMINDER",
         title: `${status === "overdue" ? "OVERDUE" : "Fee Due"} - ${student?.fname || "Student"}`,
-        message: status === "overdue"
-          ? `Next fee installment for ${student?.fname || "Student"} is overdue by ${Math.abs(daysRemaining)} day(s)`
-          : daysRemaining !== null
-            ? `Next fee installment for ${student?.fname || "Student"} ${student?.lname || ""} is due in ${daysRemaining} day(s)`
-            : `Next fee installment date not set for ${student?.fname || "Student"}`,
+        message:
+          status === "overdue"
+            ? `Next fee installment for ${student?.fname || "Student"} is overdue by ${Math.abs(daysRemaining)} day(s)`
+            : daysRemaining !== null
+              ? `Next fee installment for ${student?.fname || "Student"} ${student?.lname || ""} is due in ${daysRemaining} day(s)`
+              : `Next fee installment date not set for ${student?.fname || "Student"}`,
         studentName: `${student?.fname || ""} ${student?.lname || ""}`.trim(),
         studentEmail: student?.email,
         studentContact: student?.contact,
@@ -279,20 +294,23 @@ exports.getAllNotifications = async (employeeId) => {
         daysRemaining: daysRemaining,
         status: status,
         urgencyLevel: urgencyLevel,
-        createdAt: fee.createdAt
+        createdAt: fee.createdAt,
       };
     });
 
     // Get student registration reminders
     const enquiries = await Enquiry.find({
-      expectedRegistrationDate: { $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
-      status: { $in: ["Pending", "In Progress"] }
-    })
-    .sort({ expectedRegistrationDate: 1 });
+      expectedRegistrationDate: {
+        $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+      status: { $in: ["Pending", "In Progress"] },
+    }).sort({ expectedRegistrationDate: 1 });
 
-    const registrationNotifications = enquiries.map(enquiry => {
+    const registrationNotifications = enquiries.map((enquiry) => {
       const daysRemaining = enquiry.expectedRegistrationDate
-        ? Math.ceil((enquiry.expectedRegistrationDate - today) / (1000 * 60 * 60 * 24))
+        ? Math.ceil(
+            (enquiry.expectedRegistrationDate - today) / (1000 * 60 * 60 * 24),
+          )
         : null;
 
       let status = "upcoming";
@@ -313,11 +331,12 @@ exports.getAllNotifications = async (employeeId) => {
         _id: enquiry._id,
         type: "STUDENT_REGISTRATION",
         title: `Student Registration - ${enquiry.fname || "Student"}`,
-        message: status === "today"
-          ? `${enquiry.fname || "Student"} ${enquiry.lname || ""} is expected to register TODAY`
-          : status === "overdue"
-            ? `${enquiry.fname || "Student"} ${enquiry.lname || ""} registration pending (expected ${Math.abs(daysRemaining)} day(s) ago)`
-            : `${enquiry.fname || "Student"} ${enquiry.lname || ""} expected to register in ${daysRemaining} day(s)`,
+        message:
+          status === "today"
+            ? `${enquiry.fname || "Student"} ${enquiry.lname || ""} is expected to register TODAY`
+            : status === "overdue"
+              ? `${enquiry.fname || "Student"} ${enquiry.lname || ""} registration pending (expected ${Math.abs(daysRemaining)} day(s) ago)`
+              : `${enquiry.fname || "Student"} ${enquiry.lname || ""} expected to register in ${daysRemaining} day(s)`,
         studentName: `${enquiry.fname || ""} ${enquiry.lname || ""}`.trim(),
         studentEmail: enquiry.email,
         studentContact: enquiry.contact,
@@ -327,20 +346,29 @@ exports.getAllNotifications = async (employeeId) => {
         status: status,
         urgencyLevel: urgencyLevel,
         course: enquiry.requiredCourse,
-        createdAt: enquiry.createdAt
+        createdAt: enquiry.createdAt,
       };
     });
 
     // Combine and sort by urgency
-    const allNotifications = [...feeNotifications, ...registrationNotifications].sort((a, b) => {
-      const urgencyOrder = { critical: 0, high: 1, medium: 2, low: 3, normal: 4 };
+    const allNotifications = [
+      ...feeNotifications,
+      ...registrationNotifications,
+    ].sort((a, b) => {
+      const urgencyOrder = {
+        critical: 0,
+        high: 1,
+        medium: 2,
+        low: 3,
+        normal: 4,
+      };
       return urgencyOrder[a.urgencyLevel] - urgencyOrder[b.urgencyLevel];
     });
 
     return {
       success: true,
       count: allNotifications.length,
-      data: allNotifications
+      data: allNotifications,
     };
   } catch (error) {
     throw error;
@@ -355,11 +383,11 @@ exports.getAllNotifications = async (employeeId) => {
 exports.markNotificationAsRead = async (notificationId, employeeId) => {
   try {
     const Notification = require("../models/notification.model");
-    
+
     const notification = await Notification.findOneAndUpdate(
       { _id: notificationId, recipientId: employeeId },
       { isRead: true },
-      { new: true }
+      { new: true },
     );
 
     if (!notification) {
@@ -369,7 +397,7 @@ exports.markNotificationAsRead = async (notificationId, employeeId) => {
     return {
       success: true,
       message: "Notification marked as read",
-      data: notification
+      data: notification,
     };
   } catch (error) {
     throw error;
@@ -383,15 +411,15 @@ exports.markNotificationAsRead = async (notificationId, employeeId) => {
 exports.markAllNotificationsAsRead = async (employeeId) => {
   try {
     const Notification = require("../models/notification.model");
-    
+
     await Notification.updateMany(
       { recipientId: employeeId, isRead: false },
-      { isRead: true }
+      { isRead: true },
     );
 
     return {
       success: true,
-      message: "All notifications marked as read"
+      message: "All notifications marked as read",
     };
   } catch (error) {
     throw error;
@@ -405,15 +433,15 @@ exports.markAllNotificationsAsRead = async (employeeId) => {
 exports.getUnreadNotificationCount = async (employeeId) => {
   try {
     const Notification = require("../models/notification.model");
-    
+
     const count = await Notification.countDocuments({
       recipientId: employeeId,
-      isRead: false
+      isRead: false,
     });
 
     return {
       success: true,
-      count: count
+      count: count,
     };
   } catch (error) {
     throw error;

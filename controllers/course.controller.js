@@ -3,31 +3,24 @@ const Course = require("../models/course.model");
 // ➕ Create Course
 exports.createCourse = async (req, res, next) => {
   try {
-    const {
-      name,
-      feesAmount,
-      feesPolicy,
-      duration,
-      requiredQualification
-    } = req.body;
+    const { name, feesAmount, feesPolicy, duration, requiredQualification } =
+      req.body;
 
-    if ( !name || feesAmount === undefined || !requiredQualification) {
+    if (!name || feesAmount === undefined || !requiredQualification) {
       return res.status(400).json({
         success: false,
-        message: " name, feesAmount and requiredQualification are required"
+        message: " name, feesAmount and requiredQualification are required",
       });
     }
 
     const existingCourse = await Course.findOne({
-      $or: [
-        { name: name.trim() }
-      ]
+      $or: [{ name: name.trim() }],
     });
 
     if (existingCourse) {
       return res.status(400).json({
         success: false,
-        message: "Course with this courseId or name already exists"
+        message: "Course with this courseId or name already exists",
       });
     }
 
@@ -36,7 +29,7 @@ exports.createCourse = async (req, res, next) => {
       feesAmount,
       feesPolicy: feesPolicy?.trim(),
       duration: duration?.trim(),
-      requiredQualification
+      requiredQualification,
     });
 
     res.status(201).json({ success: true, data: course });
@@ -52,7 +45,7 @@ exports.getCourses = async (req, res, next) => {
     res.status(200).json({
       success: true,
       count: courses.length,
-      data: courses
+      data: courses,
     });
   } catch (error) {
     next(error);
@@ -64,7 +57,9 @@ exports.getCourseById = async (req, res, next) => {
   try {
     const course = await Course.findById(req.params.id);
     if (!course)
-      return res.status(404).json({ success: false, message: "Course not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Course not found" });
 
     res.status(200).json({ success: true, data: course });
   } catch (error) {
@@ -78,11 +73,13 @@ exports.updateCourse = async (req, res, next) => {
     const updatedCourse = await Course.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedCourse)
-      return res.status(404).json({ success: false, message: "Course not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Course not found" });
 
     res.status(200).json({ success: true, data: updatedCourse });
   } catch (error) {
@@ -95,9 +92,13 @@ exports.deleteCourse = async (req, res, next) => {
   try {
     const deletedCourse = await Course.findByIdAndDelete(req.params.id);
     if (!deletedCourse)
-      return res.status(404).json({ success: false, message: "Course not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Course not found" });
 
-    res.status(200).json({ success: true, message: "Course deleted successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Course deleted successfully" });
   } catch (error) {
     next(error);
   }
@@ -111,25 +112,25 @@ exports.searchCourses = async (req, res, next) => {
     if (!query || query.trim() === "") {
       return res.status(400).json({
         success: false,
-        message: "Please provide a search query"
+        message: "Please provide a search query",
       });
     }
 
     const courses = await Course.find({
-      name: new RegExp(query, "i")
+      name: new RegExp(query, "i"),
     }).sort({ name: 1 });
 
     if (courses.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `No courses found matching "${query}"`
+        message: `No courses found matching "${query}"`,
       });
     }
 
     res.status(200).json({
       success: true,
       count: courses.length,
-      data: courses
+      data: courses,
     });
   } catch (error) {
     next(error);
@@ -152,39 +153,39 @@ exports.getCourseByNameOrId = async (req, res, next) => {
     // If not found by _id or not an ObjectId, search by name
     if (!course) {
       course = await Course.findOne({
-        name: new RegExp(`^${identifier}$`, "i")
+        name: new RegExp(`^${identifier}$`, "i"),
       });
     }
 
     if (!course) {
       return res.status(404).json({
         success: false,
-        message: "Course not found"
+        message: "Course not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: course
+      data: course,
     });
   } catch (error) {
     // If Cast error occurs, try searching by name instead
-    if (error.name === 'CastError') {
+    if (error.name === "CastError") {
       try {
         const course = await Course.findOne({
-          name: new RegExp(`^${identifier}$`, "i")
+          name: new RegExp(`^${identifier}$`, "i"),
         });
 
         if (!course) {
           return res.status(404).json({
             success: false,
-            message: "Course not found"
+            message: "Course not found",
           });
         }
 
         res.status(200).json({
           success: true,
-          data: course
+          data: course,
         });
       } catch (nameError) {
         next(nameError);
@@ -192,5 +193,48 @@ exports.getCourseByNameOrId = async (req, res, next) => {
     } else {
       next(error);
     }
+  }
+};
+
+// ✏️ Update Course Fees Amount (PATCH)
+exports.updateCourseFeesAmount = async (req, res, next) => {
+  try {
+    const { feesAmount } = req.body;
+
+    // Validate feesAmount
+    if (feesAmount === undefined || feesAmount === null) {
+      return res.status(400).json({
+        success: false,
+        message: "feesAmount is required",
+      });
+    }
+
+    if (typeof feesAmount !== "number" || feesAmount < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "feesAmount must be a non-negative number",
+      });
+    }
+
+    const updatedCourse = await Course.findByIdAndUpdate(
+      req.params.id,
+      { feesAmount },
+      { new: true, runValidators: true },
+    );
+
+    if (!updatedCourse) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Course fees amount updated successfully",
+      data: updatedCourse,
+    });
+  } catch (error) {
+    next(error);
   }
 };

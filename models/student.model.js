@@ -47,6 +47,11 @@ const studentSchema = new mongoose.Schema(
       required: true,
     },
 
+    superAdminId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SuperAdmin",
+    },
+
     courseId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Course",

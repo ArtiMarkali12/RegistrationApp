@@ -15,6 +15,9 @@ router.get("/unblock", controller.getUnblockedEmployees); // Alias
 // 🔍 Search Employees
 router.get("/search", controller.searchEmployees);
 
+// 🔢 Check Employee Count (Debug/Verification)
+router.get("/check-count", controller.checkEmployeeCount);
+
 // 🔐 Update Employee Password
 router.put("/:employeeId/password", controller.updateEmployeePassword);
 
